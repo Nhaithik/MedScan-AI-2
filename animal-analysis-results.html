@@ -221,91 +221,87 @@
         <div class="status-chip" data-i18n="analysis_completed">Analysis Completed</div>
       </div>
 
-      <div class="card condition">
-        <div class="cond-row">
-          <div class="cond-left">
-            <div class="cond-ic">🐾</div>
-            <div>
-              <div class="cond-label">Possible Disease</div>
-              <div class="cond-name">Canine Allergic Dermatitis</div>
-              <div class="cond-desc">The symptoms and image findings are consistent with an allergic skin reaction.</div>
-            </div>
-          </div>
-          <div>
-            <div class="conf-label">Confidence Score</div>
-            <div class="ring"><span>87%</span></div>
-            <div class="conf-tag">High Confidence</div>
-          </div>
-        </div>
-      </div>
+     <!-- AI RESULT -->
+<div class="card plain">
 
-      <div class="card findings">
-        <div class="split-row">
-          <div>
-            <div class="section-title blue"><span class="si">🔍</span> Image Findings</div>
-            <ul class="info-list">
-              <li><span class="c">✔</span> Redness and inflammation on the skin</li>
-              <li><span class="c">✔</span> Hair loss in the affected area</li>
-              <li><span class="c">✔</span> Scratching marks and irritation visible</li>
-              <li><span class="c">✔</span> No open wounds or bleeding detected</li>
-            </ul>
-          </div>
-          <div class="img-box">
-            <img id="resultImg" src="" style="display:none;">
-            <div id="imgFallback" style="width:100%;height:100%;background:linear-gradient(160deg,#e6c9a0,#c9976a);"></div>
-          </div>
-        </div>
-      </div>
+  <div class="section-title blue">
+    <span class="si">🤖</span>
+    AI Animal Health Analysis
+  </div>
 
-      <div class="card homecare">
-        <div class="split-row">
-          <div>
-            <div class="section-title green"><span class="si">🏠</span> Home Care</div>
-            <ul class="info-list green-check">
-              <li><span class="c">✔</span> Keep the area clean and dry.</li>
-              <li><span class="c">✔</span> Bathe with a mild, hypoallergenic shampoo.</li>
-              <li><span class="c">✔</span> Prevent licking or excessive scratching.</li>
-              <li><span class="c">✔</span> Ensure a clean and dust-free environment.</li>
-              <li><span class="c">✔</span> Monitor for any worsening of symptoms.</li>
-            </ul>
-          </div>
-          <div class="note-box">
-            <b>Note</b>
-            <p>Home care can help relieve mild symptoms. If symptoms persist or worsen, consult a veterinarian.</p>
-          </div>
-        </div>
-      </div>
+  <div
+    id="animalAIResult"
+    style="
+      white-space:pre-wrap;
+      font-size:14px;
+      line-height:1.7;
+      color:var(--ink);
+      background:var(--bg-soft);
+      border-radius:12px;
+      padding:18px;
+    "
+  >
+    Loading AI analysis...
+  </div>
 
-      <div class="card vet">
-        <div class="section-title orange"><span class="si">👤</span> Veterinary Recommendation</div>
-        <div class="vet-row">
-          <div>
-            <p class="vet-desc">Consult a veterinarian for a proper diagnosis and treatment. The vet may recommend:</p>
-            <ul class="info-list orange-dot">
-              <li><span class="c">•</span> Antihistamines or anti-inflammatory medication</li>
-              <li><span class="c">•</span> Medicated shampoo or topical treatment</li>
-              <li><span class="c">•</span> Allergy testing (if recurrent)</li>
-              <li><span class="c">•</span> Dietary adjustments (if food allergy suspected)</li>
-            </ul>
-          </div>
-          <div class="vet-emoji">👩‍⚕️🐶</div>
-        </div>
-      </div>
+</div>
 
-      <div class="card urgency">
-        <div class="urgency-row">
-          <div class="urgency-ic">⚠️</div>
-          <div>
-            <div class="urgency-lab">Urgency Level</div>
-            <div class="urgency-val">Moderate</div>
-          </div>
-          <div class="urgency-desc">The condition is not immediately life-threatening, but should be addressed soon to prevent complications.</div>
-          <div class="gauge-wrap">
-            <div class="gauge"><div class="gauge-dot"></div></div>
-            <div class="gauge-labels"><span>Low</span><span>Moderate</span><span>High</span><span>Critical</span></div>
-          </div>
-        </div>
-      </div>
+
+<!-- ANIMAL IMAGE -->
+<div class="card findings">
+
+  <div class="section-title blue">
+    <span class="si">🔍</span>
+    Uploaded Animal Image
+  </div>
+
+  <div class="img-box" style="height:300px;">
+
+    <img
+      id="resultImg"
+      src=""
+      style="display:none;"
+    >
+
+    <div
+      id="imgFallback"
+      style="
+        width:100%;
+        height:100%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:linear-gradient(160deg,#e6c9a0,#c9976a);
+        color:white;
+        font-size:16px;
+      "
+    >
+      No image available
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- IMPORTANT NOTICE -->
+<div class="card vet">
+
+  <div class="section-title orange">
+    <span class="si">⚠️</span>
+    Important Veterinary Notice
+  </div>
+
+  <p class="vet-desc">
+    This AI analysis is for informational purposes only.
+    It is not a definitive veterinary diagnosis and should
+    not replace examination or treatment by a qualified
+    veterinarian.
+  </p>
+
+</div>
+
+<script src="shared.js"></script>
 
       <div class="action-row">
         <button class="btn-download" id="downloadBtn">⬇️ Download PDF Report</button>
