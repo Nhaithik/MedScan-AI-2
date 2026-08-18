@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediScan AI — AI-Powered Health Consultation</title>
+<style>
+  :root{
+    --blue:#2f6fed;
+    --blue-dark:#1e4fc4;
+    --green:#3cb897;
+    --purple:#7c6ff0;
+    --orange:#f5a623;
+    --teal:#39b6c9;
+    --pink:#ef5f8a;
+    --navy:#0b2140;
+    --ink:#12213e;
+    --muted:#5b6b8c;
+    --bg:#ffffff;
+    --bg-soft:#f5f8fc;
+    --border:#e6ebf5;
+    --radius:14px;
+    --shadow:0 10px 30px rgba(18,33,62,0.08);
+    --shadow-sm:0 4px 14px rgba(18,33,62,0.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    line-height:1.5;
+  }
+  a{text-decoration:none;color:inherit;}
+  ul{list-style:none;}
+  img{max-width:100%;display:block;}
+  .container{max-width:1200px;margin:0 auto;padding:0 24px;}
+  section{padding:70px 0;}
+  h1,h2,h3{line-height:1.2;}
+
+  /* Buttons */
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:13px 26px;border-radius:8px;font-weight:600;font-size:15px;
+    cursor:pointer;border:1px solid transparent;transition:all .2s ease;
+  }
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover{background:var(--blue-dark);transform:translateY(-1px);}
+  .btn-outline{background:#fff;color:var(--blue);border-color:var(--blue);}
+  .btn-outline:hover{background:#eef3ff;}
+  .btn-ghost{background:transparent;color:var(--blue);border-color:var(--blue);}
+  .btn-white{background:#fff;color:var(--green);}
+
+  /* Header */
+  header{
+    position:sticky;top:0;z-index:100;
+    background:#fff;border-bottom:1px solid var(--border);
+  }
+  .nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 24px;max-width:1200px;margin:0 auto;
+  }
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;color:var(--navy);}
+  .logo-mark{
+    width:34px;height:34px;border-radius:8px;background:var(--green);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0;
+  }
+  .logo-sub{display:block;font-size:11px;font-weight:400;color:var(--muted);}
+  .nav-links{display:flex;gap:32px;align-items:center;}
+  .nav-links a{font-size:15px;font-weight:500;color:var(--ink);position:relative;padding-bottom:4px;}
+  .nav-links a.active{color:var(--blue);}
+  .nav-links a.active::after{
+    content:"";position:absolute;left:0;bottom:-6px;width:100%;height:2px;background:var(--blue);
+  }
+  .nav-actions{display:flex;gap:12px;align-items:center;}
+  .nav-actions .btn{padding:10px 20px;font-size:14px;}
+  .caret{font-size:10px;opacity:.6;}
+  .burger{display:none;font-size:24px;background:none;border:none;cursor:pointer;}
+
+  /* Hero */
+  .hero{
+    background:linear-gradient(180deg,#eef4ff 0%, #f7fbfa 100%);
+    padding:80px 0 40px;
+    position:relative;overflow:hidden;
+  }
+  .hero-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;
+  }
+  .eyebrow{color:var(--green);font-weight:700;}
+  .hero h1{font-size:44px;font-weight:800;color:var(--navy);}
+  .hero h1 .accent{color:var(--green);}
+  .hero p{margin-top:18px;font-size:16px;color:var(--muted);max-width:480px;}
+  .hero-cta{display:flex;gap:14px;margin-top:28px;}
+  .hero-stats{display:flex;gap:38px;margin-top:44px;flex-wrap:wrap;}
+  .stat{display:flex;align-items:center;gap:10px;}
+  .stat-icon{
+    width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;
+  }
+  .stat b{display:block;font-size:15px;color:var(--navy);}
+  .stat span{font-size:12px;color:var(--muted);}
+
+  .hero-visual{position:relative;height:420px;}
+  .hero-photo{
+    position:absolute;right:0;top:20px;width:78%;height:380px;border-radius:24px;overflow:hidden;
+    background:linear-gradient(160deg,#dcecff,#d7f3ec);
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .hero-photo-emoji{font-size:150px;filter:drop-shadow(0 10px 10px rgba(0,0,0,.08));}
+  .float-icon{
+    position:absolute;width:46px;height:46px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+  }
+  .float-1{top:0;left:38%;background:#eaf1ff;}
+  .float-2{top:22%;right:6%;background:#e9fbf5;}
+  .float-3{top:6%;left:2%;background:#fff;}
+  .float-4{bottom:18%;left:0;background:#fff;}
+  .float-5{bottom:0;left:22%;background:#fff;}
+
+  .scan-card{
+    position:absolute;left:0;top:70px;width:230px;background:#fff;border-radius:16px;
+    box-shadow:var(--shadow);padding:16px;z-index:3;
+  }
+  .scan-card .label{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:10px;}
+  .scan-thumb{
+    width:100%;height:110px;border-radius:10px;
+    background:radial-gradient(circle at 40% 40%, #d68a6c, #c06a55 60%, #a8503f 100%);
+    margin-bottom:12px;position:relative;overflow:hidden;
+  }
+  .scan-thumb::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg, transparent 60%, rgba(47,111,237,.35) 100%);
+  }
+  .scan-bars{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+  .scan-bars i{display:block;height:6px;border-radius:4px;background:var(--border);overflow:hidden;position:relative;}
+  .scan-bars i::after{content:"";position:absolute;left:0;top:0;bottom:0;background:var(--blue);border-radius:4px;}
+  .scan-bars i:nth-child(1)::after{width:90%;}
+  .scan-bars i:nth-child(2)::after{width:65%;}
+  .scan-bars i:nth-child(3)::after{width:80%;}
+  .scan-foot{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);}
+  .scan-foot b{color:var(--green);}
+
+  /* Features */
+  .section-head{text-align:center;margin-bottom:44px;}
+  .section-head h2{font-size:28px;color:var(--navy);font-weight:800;position:relative;display:inline-block;}
+  .section-head h2::after{
+    content:"";display:block;width:46px;height:3px;background:var(--green);margin:10px auto 0;border-radius:2px;
+  }
+  .features-grid{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:18px;
+  }
+  .feature-card{
+    border:1px solid var(--border);border-radius:var(--radius);padding:26px 18px;text-align:center;
+    transition:box-shadow .2s ease, transform .2s ease;
+  }
+  .feature-card:hover{box-shadow:var(--shadow-sm);transform:translateY(-3px);}
+  .fi{
+    width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    margin:0 auto 16px;font-size:22px;color:#fff;
+  }
+  .fi.c1{background:var(--purple);} .fi.c2{background:var(--green);} .fi.c3{background:#8f7cf2;}
+  .fi.c4{background:var(--orange);} .fi.c5{background:var(--teal);} .fi.c6{background:var(--pink);}
+  .feature-card h3{font-size:15px;margin-bottom:8px;color:var(--navy);}
+  .feature-card p{font-size:13px;color:var(--muted);}
+
+  /* How it works */
+  .how{background:var(--bg-soft);}
+  .steps{
+    display:flex;justify-content:space-between;align-items:flex-start;position:relative;gap:10px;
+  }
+  .step{flex:1;text-align:center;position:relative;}
+  .step-icon{
+    width:64px;height:64px;border-radius:50%;background:#fff;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px;
+    box-shadow:var(--shadow-sm);
+  }
+  .step h4{font-size:14px;color:var(--navy);margin-bottom:6px;}
+  .step p{font-size:12px;color:var(--muted);padding:0 6px;}
+  .step-connector{
+    position:absolute;top:32px;left:calc(50% + 40px);width:calc(100% - 80px);
+    border-top:2px dashed var(--border);z-index:0;
+  }
+
+  /* Why choose + testimonials */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;}
+  .why h2{font-size:24px;color:var(--navy);font-weight:800;margin-bottom:22px;}
+  .why h2::after{content:"";display:block;width:40px;height:3px;background:var(--green);margin-top:8px;border-radius:2px;}
+  .why-list{display:flex;flex-direction:column;gap:16px;margin-top:20px;}
+  .why-list li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;color:var(--ink);}
+  .check{color:var(--green);font-weight:800;flex-shrink:0;}
+  .why-visual{
+    margin-top:30px;display:flex;justify-content:center;
+  }
+  .phone{
+    width:220px;height:400px;background:linear-gradient(160deg,#eaf4ff,#e3fbf3);
+    border-radius:28px;border:6px solid #fff;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;
+  }
+  .phone-card{background:#fff;border-radius:12px;padding:14px;width:100%;box-shadow:var(--shadow-sm);}
+  .phone-card .t{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+  .phone-card .s{font-size:10px;color:var(--muted);margin-bottom:8px;}
+  .ring{
+    width:70px;height:70px;border-radius:50%;
+    background:conic-gradient(var(--green) 92%, var(--border) 0);
+    display:flex;align-items:center;justify-content:center;margin:8px auto;
+  }
+  .ring span{
+    width:54px;height:54px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:var(--navy);flex-direction:column;
+  }
+
+  .testi h2{font-size:24px;color:var(--navy);font-weight:800;margin-bottom:22px;}
+  .testi h2::after{content:"";display:block;width:40px;height:3px;background:var(--green);margin-top:8px;border-radius:2px;}
+  .testi-cards{display:flex;flex-direction:column;gap:16px;}
+  .testi-card{
+    border:1px solid var(--border);border-radius:var(--radius);padding:20px;background:#fff;
+  }
+  .quote-mark{color:var(--blue);font-size:22px;font-weight:800;}
+  .testi-card p{font-size:13.5px;color:var(--ink);margin:8px 0 14px;}
+  .testi-user{display:flex;align-items:center;gap:10px;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .testi-user b{display:block;font-size:13px;color:var(--navy);}
+  .testi-user span{font-size:11px;color:var(--muted);}
+  .dots{display:flex;gap:6px;justify-content:center;margin-top:6px;}
+  .dots i{width:6px;height:6px;border-radius:50%;background:var(--border);}
+  .dots i.on{background:var(--green);}
+
+  /* FAQ */
+  .faq{background:var(--bg-soft);}
+  .faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .faq-item{
+    background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px 20px;
+    display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:14.5px;color:var(--navy);font-weight:500;
+  }
+  .faq-item .plus{color:var(--blue);font-size:18px;font-weight:700;transition:transform .2s;}
+  .faq-item.open .plus{transform:rotate(45deg);}
+  .faq-answer{
+    max-height:0;overflow:hidden;transition:max-height .25s ease;font-size:13.5px;color:var(--muted);
+  }
+  .faq-item-wrap{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .faq-item-wrap .faq-item{border:none;}
+  .faq-answer-inner{padding:0 20px 16px;}
+
+  /* CTA banner */
+  .cta-banner{
+    background:linear-gradient(120deg,var(--green),#2fa88a);
+    border-radius:18px;padding:40px 46px;
+    display:flex;justify-content:space-between;align-items:center;color:#fff;
+    margin:0 24px;
+  }
+  .cta-banner h3{font-size:22px;margin-bottom:6px;}
+  .cta-banner p{font-size:13.5px;opacity:.9;}
+  .cta-banner .btn{margin-top:16px;}
+  .cta-phone{display:flex;align-items:center;gap:10px;font-weight:700;}
+  .cta-phone .ico{
+    width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);
+    display:flex;align-items:center;justify-content:center;font-size:18px;
+  }
+
+  /* Footer */
+  footer{background:var(--navy);color:#c9d5ea;padding:60px 0 0;margin-top:70px;}
+  .footer-grid{
+    display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;gap:30px;padding-bottom:40px;
+    border-bottom:1px solid rgba(255,255,255,.1);
+  }
+  .footer-logo{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:17px;margin-bottom:12px;}
+  .footer-grid p{font-size:13px;line-height:1.6;color:#9fb0cc;}
+  .footer-grid h4{color:#fff;font-size:14px;margin-bottom:16px;}
+  .footer-grid ul li{margin-bottom:10px;font-size:13px;}
+  .footer-grid ul li a:hover{color:#fff;}
+  .social{display:flex;gap:10px;margin-top:16px;}
+  .social a{
+    width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);
+    display:flex;align-items:center;justify-content:center;font-size:13px;
+  }
+  .contact-item{display:flex;gap:8px;font-size:13px;margin-bottom:12px;color:#c9d5ea;align-items:flex-start;}
+  .bottom-bar{text-align:center;padding:20px 0;font-size:12.5px;color:#8ea0c2;}
+
+  @media (max-width:960px){
+    .nav-links{display:none;}
+    .burger{display:block;}
+    .hero-grid{grid-template-columns:1fr;}
+    .hero-visual{height:320px;margin-top:20px;}
+    .features-grid{grid-template-columns:repeat(2,1fr);}
+    .steps{flex-direction:column;gap:26px;}
+    .step-connector{display:none;}
+    .split{grid-template-columns:1fr;}
+    .footer-grid{grid-template-columns:1fr 1fr;}
+    .cta-banner{flex-direction:column;text-align:center;gap:16px;}
+    .faq-grid{grid-template-columns:1fr;}
+    .hero h1{font-size:32px;}
+  }
+</style>
+<link rel="stylesheet" href="shared-dark.css">
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="logo">
+      <div class="logo-mark">✚</div>
+      <div>MediScan AI<span class="logo-sub">AI Healthcare Consultant</span></div>
+    </div>
+    <nav class="nav-links">
+      <a href="#" class="active">Home</a>
+      <a href="#">About</a>
+      <a href="#">Services <span class="caret">▾</span></a>
+      <a href="#how">How It Works</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="nav-actions">
+      <a href="login.html" class="btn btn-outline">Login</a>
+      <a href="login.html" class="btn btn-primary">Register</a>
+    </div>
+    <button class="burger">☰</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <h1>AI-Powered<br><span class="accent">Health Consultation</span><br>for Humans &amp; Animals</h1>
+      <p>Upload an image, describe your symptoms, and receive AI-powered preliminary health guidance using Computer Vision and Large Language Models.</p>
+      <div class="hero-cta">
+        <a href="login.html" class="btn btn-primary">Get Started →</a>
+        <button class="btn btn-ghost">Learn More ▶</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><div class="stat-icon">🎯</div><div><b>95%+</b><span>AI Accuracy</span></div></div>
+        <div class="stat"><div class="stat-icon">👥</div><div><b>5000+ Users</b><span>Trusted by</span></div></div>
+        <div class="stat"><div class="stat-icon">💬</div><div><b>10K+</b><span>Consultations</span></div></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-photo"><div class="hero-photo-emoji">👩‍⚕️</div></div>
+      <div class="scan-card">
+        <div class="label">AI Analysis</div>
+        <div class="scan-thumb"></div>
+        <div class="scan-bars"><i></i><i></i><i></i></div>
+        <div class="scan-foot"><span>Scanning...</span><b>92%</b></div>
+      </div>
+      <div class="float-icon float-1">🖥️</div>
+      <div class="float-icon float-2">🩺</div>
+      <div class="float-icon float-3">🐾</div>
+      <div class="float-icon float-4">📋</div>
+      <div class="float-icon float-5">🐾</div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <div class="section-head"><h2>Our Features</h2></div>
+    <div class="features-grid">
+      <div class="feature-card"><div class="fi c1">🖼️</div><h3>AI Image Analysis</h3><p>Advanced computer vision detects health issues from uploaded images.</p></div>
+      <div class="feature-card"><div class="fi c2">🩺</div><h3>Symptom Checker</h3><p>Describe your symptoms and get AI-powered insights instantly.</p></div>
+      <div class="feature-card"><div class="fi c3">👨‍👩‍👧</div><h3>Human &amp; Animal Care</h3><p>Get health guidance for both humans and animals.</p></div>
+      <div class="feature-card"><div class="fi c4">⚕️</div><h3>First Aid Suggestions</h3><p>Receive general first aid tips and precautionary measures.</p></div>
+      <div class="feature-card"><div class="fi c5">📄</div><h3>Detailed Reports</h3><p>Download and save AI-generated reports for your records.</p></div>
+      <div class="feature-card"><div class="fi c6">🔒</div><h3>Secure &amp; Private</h3><p>Your data is encrypted and protected with top security standards.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="container">
+    <div class="section-head"><h2>How It Works</h2></div>
+    <div class="steps">
+      <div class="step"><div class="step-connector"></div><div class="step-icon">☁️</div><h4>Upload Image</h4><p>Upload a clear image of the affected area.</p></div>
+      <div class="step"><div class="step-connector"></div><div class="step-icon">📋</div><h4>Describe Symptoms</h4><p>Provide details about symptoms and history.</p></div>
+      <div class="step"><div class="step-connector"></div><div class="step-icon">🧠</div><h4>AI Analysis</h4><p>Our AI analyses the image and information.</p></div>
+      <div class="step"><div class="step-connector"></div><div class="step-icon">📄</div><h4>Get Health Report</h4><p>Receive preliminary health insights and suggestions.</p></div>
+      <div class="step"><div class="step-icon">👨‍⚕️</div><h4>Consult a Doctor</h4><p>Follow up with a professional for accurate diagnosis.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container split">
+    <div class="why">
+      <h2>Why Choose MediScan AI?</h2>
+      <ul class="why-list">
+        <li><span class="check">✔</span> AI-powered accuracy and fast results</li>
+        <li><span class="check">✔</span> Support for both human and animal health</li>
+        <li><span class="check">✔</span> Easy to use and accessible anytime</li>
+        <li><span class="check">✔</span> Preliminary guidance before visiting a doctor</li>
+        <li><span class="check">✔</span> Secure, private and reliable platform</li>
+        <li><span class="check">✔</span> Backed by modern AI and medical knowledge</li>
+      </ul>
+      <div class="why-visual">
+        <div class="phone">
+          <div class="phone-card">
+            <div class="t">Health Report</div>
+            <div class="s">Possible Condition: Skin Irritation</div>
+            <div class="ring"><span>92%<br>Confidence</span></div>
+            <div class="s" style="text-align:center;margin-top:6px;">Recommendations</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="testi">
+      <h2>What Our Users Say</h2>
+      <div class="testi-cards">
+        <div class="testi-card">
+          <span class="quote-mark">“</span>
+          <p>MediScan AI helped me understand my skin issue before visiting the doctor. Very accurate and helpful!</p>
+          <div class="testi-user"><div class="avatar">👩</div><div><b>Priya Sharma</b><span>Verified User</span></div></div>
+        </div>
+        <div class="testi-card">
+          <span class="quote-mark">“</span>
+          <p>I checked my dog's wound and got guidance instantly. Great platform for pet parents!</p>
+          <div class="testi-user"><div class="avatar">👨</div><div><b>Rahul Mehta</b><span>Verified User</span></div></div>
+        </div>
+      </div>
+      <div class="dots"><i class="on"></i><i></i><i></i></div>
+    </div>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="container">
+    <div class="section-head"><h2>Frequently Asked Questions</h2></div>
+    <div class="faq-grid">
+      <div class="faq-item-wrap">
+        <div class="faq-item" onclick="toggleFaq(this)">Is MediScan AI a substitute for doctors?<span class="plus">+</span></div>
+        <div class="faq-answer"><div class="faq-answer-inner">No. MediScan AI provides preliminary guidance only. Always consult a licensed professional for diagnosis and treatment.</div></div>
+      </div>
+      <div class="faq-item-wrap">
+        <div class="faq-item" onclick="toggleFaq(this)">Can I use MediScan AI for my pets?<span class="plus">+</span></div>
+        <div class="faq-answer"><div class="faq-answer-inner">Yes, MediScan AI supports both human and animal health consultations.</div></div>
+      </div>
+      <div class="faq-item-wrap">
+        <div class="faq-item" onclick="toggleFaq(this)">How accurate is the AI analysis?<span class="plus">+</span></div>
+        <div class="faq-answer"><div class="faq-answer-inner">Our models report over 95% accuracy in testing, though results should be confirmed by a doctor.</div></div>
+      </div>
+      <div class="faq-item-wrap">
+        <div class="faq-item" onclick="toggleFaq(this)">What types of images can I upload?<span class="plus">+</span></div>
+        <div class="faq-answer"><div class="faq-answer-inner">Clear photos of skin conditions, wounds, or affected areas in JPG or PNG format work best.</div></div>
+      </div>
+      <div class="faq-item-wrap">
+        <div class="faq-item" onclick="toggleFaq(this)">Is my data secure?<span class="plus">+</span></div>
+        <div class="faq-answer"><div class="faq-answer-inner">Yes, all uploads and reports are encrypted and stored securely in line with industry standards.</div></div>
+      </div>
+      <div class="faq-item-wrap">
+        <div class="faq-item" onclick="toggleFaq(this)">How do I get my AI health report?<span class="plus">+</span></div>
+        <div class="faq-answer"><div class="faq-answer-inner">After uploading an image and describing symptoms, your report generates instantly and can be downloaded.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="container">
+    <div class="cta-banner">
+      <div>
+        <h3>Have Questions? We're Here to Help!</h3>
+        <p>Reach out to our team for support or any inquiries.</p>
+        <button class="btn btn-white">Contact Us →</button>
+      </div>
+      <div class="cta-phone"><div class="ico">📞</div>24/7</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container footer-grid">
+    <div>
+      <div class="footer-logo"><div class="logo-mark">✚</div>MediScan AI</div>
+      <p>AI-powered health consultation platform for humans and animals. Get preliminary health guidance instantly.</p>
+      <div class="social">
+        <a href="#">f</a><a href="#">𝕏</a><a href="#">◎</a><a href="#">in</a>
+      </div>
+    </div>
+    <div>
+      <h4>Quick Links</h4>
+      <ul><li><a href="#">Home</a></li><li><a href="#">About Us</a></li><li><a href="#">Services</a></li><li><a href="#how">How It Works</a></li><li><a href="#contact">Contact Us</a></li></ul>
+    </div>
+    <div>
+      <h4>Services</h4>
+      <ul><li><a href="#">Human Consultation</a></li><li><a href="#">Animal Consultation</a></li><li><a href="#">Symptom Checker</a></li><li><a href="#">Health Reports</a></li><li><a href="#">AI Analysis</a></li></ul>
+    </div>
+    <div>
+      <h4>Support</h4>
+      <ul><li><a href="#">FAQs</a></li><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li><li><a href="#">Refund Policy</a></li><li><a href="#">Contact Support</a></li></ul>
+    </div>
+    <div>
+      <h4>Contact Us</h4>
+      <div class="contact-item">📞 +91 12345 67890</div>
+      <div class="contact-item">✉️ support@mediscanai.com</div>
+      <div class="contact-item">📍 123, Health Street, Hyderabad, India - 500001</div>
+    </div>
+  </div>
+  <div class="bottom-bar">© 2025 MediScan AI. All rights reserved.</div>
+</footer>
+
+<script>
+function toggleFaq(el){
+  const wrap = el.parentElement;
+  const answer = wrap.querySelector('.faq-answer');
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i=>{
+    i.classList.remove('open');
+    i.parentElement.querySelector('.faq-answer').style.maxHeight = null;
+  });
+  if(!isOpen){
+    el.classList.add('open');
+    answer.style.maxHeight = answer.scrollHeight + 20 + 'px';
+  }
+}
+</script>
+
+<script src="shared.js"></script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+/* MediScan AI — shared dark mode overrides.
+   Broad, class-based rules so a single stylesheet covers every page
+   in the app without needing page-specific dark CSS. */
+
+body.dark{
+  background:#0d1420 !important;
+  color:#dfe6f5 !important;
+}
+
+/* Generic surfaces */
+body.dark .sidebar,
+body.dark .topbar,
+body.dark .panel,
+body.dark .card,
+body.dark .card.plain,
+body.dark header,
+body.dark footer,
+body.dark .table-panel,
+body.dark .footer-strip,
+body.dark .modal,
+body.dark .filters,
+body.dark .secure-strip,
+body.dark .cta-banner,
+body.dark .action-card,
+body.dark .status-panel,
+body.dark thead th{
+  background:#151f31 !important;
+  border-color:#26324a !important;
+  color:#dfe6f5 !important;
+}
+
+body.dark .content,
+body.dark .main,
+body.dark .wrap,
+body.dark section,
+body.dark .hero{
+  background:transparent !important;
+  color:#dfe6f5 !important;
+}
+
+/* Text colors */
+body.dark h1, body.dark h2, body.dark h3, body.dark h4, body.dark h5, body.dark b, body.dark strong{
+  color:#f2f5fb !important;
+}
+body.dark p, body.dark span, body.dark li, body.dark label, body.dark td, body.dark .muted,
+body.dark .sub, body.dark .lab, body.dark .t-sub, body.dark .cond-desc, body.dark .cond-sub{
+  color:#a9b4cc !important;
+}
+
+/* Nav items */
+body.dark .nav-item{ color:#dbe2f2 !important; }
+body.dark .nav-item:hover{ background:#1c2740 !important; }
+body.dark .nav-item.active{ background:#26264f !important; color:#c3b9ff !important; }
+body.dark .logo-sub, body.dark .brand .sub{ color:#8a97b5 !important; }
+
+/* Help / info boxes */
+body.dark .help-box, body.dark .tips-box, body.dark .disclaimer,
+body.dark .info-panel, body.dark .safe-box, body.dark .note-box,
+body.dark .status-card, body.dark .total-card, body.dark .stat-box,
+body.dark .perks, body.dark .perk-row .pi, body.dark .med-note{
+  background:#1a2438 !important;
+  color:#c7d0e4 !important;
+}
+body.dark .disclaimer-panel{
+  background:#301c1c !important;
+  border-color:#4a2a2a !important;
+}
+body.dark .disclaimer-panel p{ color:#e0a9a9 !important; }
+
+/* Inputs */
+body.dark input, body.dark select, body.dark textarea{
+  background:#101a2b !important;
+  border-color:#2a3550 !important;
+  color:#e6ebf5 !important;
+}
+body.dark input::placeholder, body.dark textarea::placeholder{ color:#6f7c99 !important; }
+body.dark .input-wrap, body.dark .search-wrap, body.dark .date-wrap, body.dark .dropdown-toggle{
+  background:#101a2b !important;
+  border-color:#2a3550 !important;
+}
+body.dark .dropzone{ background:#101a2b !important; border-color:#3a4870 !important; }
+body.dark .dropdown-menu{ background:#151f31 !important; border-color:#2a3550 !important; }
+body.dark .dropdown-item:hover{ background:#1c2740 !important; }
+
+/* Borders / dividers */
+body.dark .border, body.dark hr,
+body.dark .nav-divider,
+body.dark tbody td, body.dark .info-row, body.dark .toggle-row,
+body.dark .footer-grid, body.dark .form-footer{
+  border-color:#26324a !important;
+}
+
+/* Buttons keep their accent colors but adjust outline/ghost variants */
+body.dark .btn-outline, body.dark .btn-ghost, body.dark .btn-edit,
+body.dark .btn-clear, body.dark .btn-download, body.dark .btn-outline-purple,
+body.dark .page-btn, body.dark .modal-cancel{
+  background:#151f31 !important;
+  color:#c3cee6 !important;
+}
+body.dark .btn-google{ background:#151f31 !important; color:#e6ebf5 !important; border-color:#2a3550 !important; }
+
+/* Tables */
+body.dark table{ color:#dfe6f5 !important; }
+body.dark tbody tr:hover{ background:#1a2438 !important; }
+
+/* Misc chips / badges keep color but darker background handled above via .info-panel etc. */
+body.dark .status-chip.completed, body.dark .stat-delta{ background:#123526 !important; }
+body.dark .status-chip.progress{ background:#3a2c10 !important; }
+body.dark .type-chip.human{ background:#1c2740 !important; }
+body.dark .type-chip.animal{ background:#123526 !important; }
+
+/* Scrollbars (optional nicety) */
+body.dark ::-webkit-scrollbar{ background:#0d1420; }
+body.dark ::-webkit-scrollbar-thumb{ background:#2a3550; border-radius:8px; }

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediScan AI — Animal Analysis Results</title>
+<style>
+  :root{
+    --purple:#7c6ff0;
+    --purple-dark:#5b4fd6;
+    --blue:#2f6fed;
+    --green:#3cb897;
+    --orange:#f5a623;
+    --red:#e15b5b;
+    --pink:#ef5f8a;
+    --ink:#12213e;
+    --muted:#5b6b8c;
+    --border:#e6ebf5;
+    --bg-soft:#f6f9fd;
+    --radius:16px;
+    --shadow-sm:0 4px 14px rgba(18,33,62,0.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--bg-soft);
+  }
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;}
+
+  .app{display:grid;grid-template-columns:270px 1fr;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:26px 20px;}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:34px;padding:0 6px;}
+  .brand .mark{font-size:26px;}
+  .brand .name{font-weight:700;font-size:17px;}
+  .brand .name .blue{color:var(--blue);}
+  .brand .name .green{color:var(--green);}
+  .brand .sub{display:block;font-size:11px;font-weight:400;color:var(--muted);}
+  .nav-main{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;font-size:14.5px;font-weight:500;color:var(--ink);cursor:pointer;}
+  .nav-item .ic{width:20px;text-align:center;font-size:16px;}
+  .nav-item:hover{background:var(--bg-soft);}
+  .nav-item.active{background:#f1eefe;color:var(--purple-dark);font-weight:700;}
+  .nav-divider{height:1px;background:var(--border);margin:14px 0;}
+  .help-box{background:#f1eefe;border-radius:14px;padding:18px;margin-top:16px;}
+  .help-box b{font-size:13.5px;color:var(--purple-dark);}
+  .help-box p{font-size:12px;color:var(--muted);margin:8px 0 14px;}
+  .chat-btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    background:#fff;border:1px solid #d9d0fc;border-radius:10px;padding:10px 14px;
+    font-size:13px;font-weight:600;color:var(--purple-dark);cursor:pointer;
+  }
+  .bot-emoji{font-size:70px;text-align:center;margin-top:14px;}
+
+  /* Main */
+  .main{display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 34px;background:#fff;border-bottom:1px solid var(--border);}
+  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);}
+  .breadcrumb b{color:var(--ink);font-weight:700;}
+  .breadcrumb .sep{color:#c7cede;}
+  .topbar-right{display:flex;align-items:center;gap:22px;}
+  .bell{position:relative;font-size:19px;cursor:pointer;}
+  .bell .dot{position:absolute;top:-6px;right:-8px;background:var(--pink);color:#fff;font-size:10px;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .user-chip{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .avatar-circle{width:42px;height:42px;border-radius:50%;background:#ffe3c2;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .user-chip b{font-size:14px;display:block;}
+  .user-chip span{font-size:11.5px;color:var(--muted);}
+  .caret{font-size:10px;color:var(--muted);}
+
+  .content{padding:28px 34px 40px;max-width:1000px;}
+
+  .page-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;flex-wrap:wrap;}
+  .page-head h1{font-size:20px;font-weight:800;}
+  .page-head p{font-size:12.5px;color:var(--muted);margin-top:4px;}
+  .status-chip{
+    background:#e6f9ef;color:var(--green);font-size:12.5px;font-weight:700;padding:6px 14px;border-radius:20px;height:fit-content;
+  }
+
+  .card{border-radius:var(--radius);padding:22px;margin-bottom:18px;}
+  .card.condition{background:#fdeeee;}
+  .card.findings{background:#eaf1ff;}
+  .card.homecare{background:#eafbf3;}
+  .card.vet{background:#fff5e9;}
+  .card.urgency{background:#fdeeee;}
+  .card.plain{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow-sm);}
+
+  .cond-row{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+  .cond-left{display:flex;gap:14px;}
+  .cond-ic{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+  .cond-label{font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .cond-name{font-size:19px;font-weight:800;color:var(--red);margin-bottom:8px;}
+  .cond-desc{font-size:13px;color:var(--muted);max-width:340px;line-height:1.5;}
+  .conf-label{font-size:12px;color:var(--muted);text-align:center;margin-bottom:8px;}
+  .ring{
+    width:82px;height:82px;border-radius:50%;
+    background:conic-gradient(var(--green) 87%, #f3d9d9 0);
+    display:flex;align-items:center;justify-content:center;margin:0 auto;
+  }
+  .ring span{
+    width:62px;height:62px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:16px;font-weight:800;
+  }
+  .conf-tag{font-size:11px;color:var(--green);font-weight:700;text-align:center;margin-top:6px;}
+
+  .split-row{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:start;}
+  .section-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;margin-bottom:14px;}
+  .section-title .si{font-size:16px;}
+  .section-title.blue{color:var(--blue);}
+  .section-title.green{color:#1e7a55;}
+  .section-title.orange{color:#b5720f;}
+  .info-list li{display:flex;gap:8px;font-size:13px;color:var(--ink);margin-bottom:10px;align-items:flex-start;}
+  .info-list li:last-child{margin-bottom:0;}
+  .info-list .c{font-weight:800;flex-shrink:0;color:var(--blue);}
+  .info-list.green-check .c{color:var(--green);}
+  .info-list.orange-dot .c{color:var(--orange);}
+  .img-box{border-radius:12px;overflow:hidden;height:100%;min-height:180px;background:linear-gradient(160deg,#e6c9a0,#c9976a);}
+  .img-box img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  .note-box{background:#fff;border-radius:12px;padding:16px;height:100%;}
+  .note-box b{color:#1e7a55;font-size:13px;display:block;margin-bottom:8px;}
+  .note-box p{font-size:12.5px;color:var(--muted);line-height:1.5;}
+
+  .vet-row{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:center;}
+  .vet-desc{font-size:13px;color:var(--ink);line-height:1.5;margin-bottom:6px;}
+  .vet-emoji{font-size:70px;text-align:center;}
+
+  .urgency-row{display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center;}
+  .urgency-ic{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .urgency-lab{font-size:12.5px;color:var(--muted);margin-bottom:4px;}
+  .urgency-val{font-size:18px;font-weight:800;color:var(--orange);}
+  .urgency-desc{font-size:12.5px;color:var(--muted);max-width:280px;line-height:1.5;}
+  .gauge-wrap{width:220px;}
+  .gauge{
+    height:8px;border-radius:6px;background:linear-gradient(90deg,#3cb897,#f5d76e,#f5a623,#e15b5b);position:relative;
+  }
+  .gauge-dot{
+    position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;
+    border:3px solid var(--orange);left:42%;
+  }
+  .gauge-labels{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:8px;}
+
+  .action-row{display:grid;grid-template-columns:1fr 1.6fr;gap:16px;margin-bottom:14px;}
+  .btn-download{
+    border:1px solid var(--purple);color:var(--purple-dark);background:#fff;border-radius:10px;padding:14px;
+    font-size:13.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-download:hover{background:#f7f6ff;}
+  .btn-save{
+    border:none;background:linear-gradient(90deg,var(--purple),#9b8ff5);color:#fff;border-radius:10px;padding:14px;
+    font-size:13.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-save:hover{opacity:.92;}
+  .secure-note{text-align:center;font-size:12px;color:var(--muted);}
+
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .split-row, .vet-row, .action-row{grid-template-columns:1fr;}
+    .urgency-row{grid-template-columns:1fr;text-align:left;}
+    .gauge-wrap{width:100%;}
+  }
+</style>
+<link rel="stylesheet" href="shared-dark.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <a href="dashboard.html" class="brand">
+      <span class="mark">🩺</span>
+      <span class="name"><span class="blue">Medi</span><span class="green">Scan AI</span><span class="sub" data-i18n="brand_sub">AI Healthcare Assistant</span></span>
+    </a>
+
+    <div class="nav-main">
+      <a href="dashboard.html" class="nav-item"><span class="ic">🏠</span> <span data-i18n="nav_dashboard">Dashboard</span></a>
+      <a href="human-consultation.html" class="nav-item"><span class="ic">🧑</span> <span data-i18n="nav_human_health">Human Health</span></a>
+      <a href="animal-consultation.html" class="nav-item active"><span class="ic">🐾</span> <span data-i18n="nav_animal_health">Animal Health</span></a>
+      <a href="consultation-history.html" class="nav-item"><span class="ic">📋</span> <span data-i18n="nav_consultation_history">Consultation History</span></a>
+      <a href="profile.html" class="nav-item"><span class="ic">👤</span> <span data-i18n="nav_profile">Profile</span></a>
+      <a href="settings.html" class="nav-item"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Settings</span></a>
+      <div class="nav-divider"></div>
+      <a href="index.html" class="nav-item"><span class="ic">↩️</span> <span data-i18n="nav_logout">Logout</span></a>
+    </div>
+
+    <div class="help-box">
+      <b data-i18n="help_title">Need Help?</b>
+      <p data-i18n="help_desc">Talk to our AI Assistant or contact a professional.</p>
+      <button class="chat-btn">💬 <span data-i18n="help_chat_btn">Chat with AI Assistant</span></button>
+      <div class="bot-emoji">🤖</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="breadcrumb">
+        <a href="dashboard.html">Dashboard</a><span class="sep">›</span>
+        <a href="animal-consultation.html">Animal Health</a><span class="sep">›</span>
+        <b>AI Analysis Result</b>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" data-dark-toggle-btn style="width:38px;height:38px;border-radius:50%;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;border:none;">🌙</button>
+        <div class="lang-chip" style="display:flex;align-items:center;gap:8px;background:var(--bg-soft);border-radius:20px;padding:8px 14px;font-size:13.5px;">🌐 <span data-lang-label>English</span></div>
+        <div class="bell">🔔<span class="dot">2</span></div>
+        <div class="user-chip">
+          <div class="avatar-circle">🧑</div>
+          <div><b>Hello, User</b><span>Premium Member</span></div>
+          <span class="caret">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1 data-i18n="analysis_title">AI Analysis Result</h1>
+          <p id="resultTimestamp">Completed on May 20, 2025, 11:45 AM</p>
+        </div>
+        <div class="status-chip" data-i18n="analysis_completed">Analysis Completed</div>
+      </div>
+
+      <div class="card condition">
+        <div class="cond-row">
+          <div class="cond-left">
+            <div class="cond-ic">🐾</div>
+            <div>
+              <div class="cond-label">Possible Disease</div>
+              <div class="cond-name">Canine Allergic Dermatitis</div>
+              <div class="cond-desc">The symptoms and image findings are consistent with an allergic skin reaction.</div>
+            </div>
+          </div>
+          <div>
+            <div class="conf-label">Confidence Score</div>
+            <div class="ring"><span>87%</span></div>
+            <div class="conf-tag">High Confidence</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card findings">
+        <div class="split-row">
+          <div>
+            <div class="section-title blue"><span class="si">🔍</span> Image Findings</div>
+            <ul class="info-list">
+              <li><span class="c">✔</span> Redness and inflammation on the skin</li>
+              <li><span class="c">✔</span> Hair loss in the affected area</li>
+              <li><span class="c">✔</span> Scratching marks and irritation visible</li>
+              <li><span class="c">✔</span> No open wounds or bleeding detected</li>
+            </ul>
+          </div>
+          <div class="img-box">
+            <img id="resultImg" src="" style="display:none;">
+            <div id="imgFallback" style="width:100%;height:100%;background:linear-gradient(160deg,#e6c9a0,#c9976a);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card homecare">
+        <div class="split-row">
+          <div>
+            <div class="section-title green"><span class="si">🏠</span> Home Care</div>
+            <ul class="info-list green-check">
+              <li><span class="c">✔</span> Keep the area clean and dry.</li>
+              <li><span class="c">✔</span> Bathe with a mild, hypoallergenic shampoo.</li>
+              <li><span class="c">✔</span> Prevent licking or excessive scratching.</li>
+              <li><span class="c">✔</span> Ensure a clean and dust-free environment.</li>
+              <li><span class="c">✔</span> Monitor for any worsening of symptoms.</li>
+            </ul>
+          </div>
+          <div class="note-box">
+            <b>Note</b>
+            <p>Home care can help relieve mild symptoms. If symptoms persist or worsen, consult a veterinarian.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card vet">
+        <div class="section-title orange"><span class="si">👤</span> Veterinary Recommendation</div>
+        <div class="vet-row">
+          <div>
+            <p class="vet-desc">Consult a veterinarian for a proper diagnosis and treatment. The vet may recommend:</p>
+            <ul class="info-list orange-dot">
+              <li><span class="c">•</span> Antihistamines or anti-inflammatory medication</li>
+              <li><span class="c">•</span> Medicated shampoo or topical treatment</li>
+              <li><span class="c">•</span> Allergy testing (if recurrent)</li>
+              <li><span class="c">•</span> Dietary adjustments (if food allergy suspected)</li>
+            </ul>
+          </div>
+          <div class="vet-emoji">👩‍⚕️🐶</div>
+        </div>
+      </div>
+
+      <div class="card urgency">
+        <div class="urgency-row">
+          <div class="urgency-ic">⚠️</div>
+          <div>
+            <div class="urgency-lab">Urgency Level</div>
+            <div class="urgency-val">Moderate</div>
+          </div>
+          <div class="urgency-desc">The condition is not immediately life-threatening, but should be addressed soon to prevent complications.</div>
+          <div class="gauge-wrap">
+            <div class="gauge"><div class="gauge-dot"></div></div>
+            <div class="gauge-labels"><span>Low</span><span>Moderate</span><span>High</span><span>Critical</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-download" id="downloadBtn">⬇️ Download PDF Report</button>
+        <button class="btn-save" id="saveBtn">💾 Save Consultation</button>
+      </div>
+      <div class="secure-note">🛡️ Your data is secure and encrypted</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const d = new Date();
+  const dateStr = d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const timeStr = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  document.getElementById('resultTimestamp').textContent = 'Completed on ' + dateStr + ', ' + timeStr;
+
+  try {
+    const storedImg = sessionStorage.getItem('mediscan_animal_uploaded_image');
+    if(storedImg){
+      const img = document.getElementById('resultImg');
+      img.src = storedImg;
+      img.style.display = 'block';
+      document.getElementById('imgFallback').style.display = 'none';
+    }
+  } catch(e) {}
+
+  document.getElementById('downloadBtn').addEventListener('click', () => {
+    alert('PDF download would start here (demo only — no backend connected).');
+  });
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    alert('Consultation saved to your history (demo only — no backend connected).');
+    window.location.href = 'consultation-history.html';
+  });
+</script>
+
+<script src="shared.js"></script>
+</body>
+</html>

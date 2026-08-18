@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediScan AI — Login</title>
+<style>
+  :root{
+    --blue:#2f6fed;
+    --blue-dark:#1e4fc4;
+    --green:#3cb897;
+    --ink:#12213e;
+    --muted:#5b6b8c;
+    --border:#e6ebf5;
+    --radius:16px;
+    --shadow:0 20px 50px rgba(18,33,62,0.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(150deg,#eef4ff 0%, #f4faf8 55%, #ffffff 100%);
+  }
+  a{text-decoration:none;color:inherit;}
+  .wrap{max-width:1200px;margin:0 auto;padding:40px 24px 0;}
+  .top-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px;margin-bottom:50px;}
+  .logo-mark{
+    width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--green);
+  }
+  .logo-text .blue{color:var(--blue);}
+  .logo-text .green{color:var(--green);}
+
+  .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:50px;align-items:start;}
+
+  .left h1{font-size:38px;font-weight:800;line-height:1.2;color:var(--ink);}
+  .left h1 .accent{color:var(--green);display:block;}
+  .left p{margin-top:16px;font-size:15px;color:var(--muted);max-width:420px;}
+
+  .art{
+    position:relative;height:340px;margin-top:30px;display:flex;align-items:flex-end;justify-content:center;
+  }
+  .art-emoji{font-size:150px;line-height:1;filter:drop-shadow(0 10px 12px rgba(0,0,0,.08));}
+  .badge{
+    position:absolute;width:56px;height:56px;border-radius:14px;background:#fff;box-shadow:var(--shadow);
+    display:flex;align-items:center;justify-content:center;font-size:24px;
+  }
+  .badge.b1{top:0;left:12%;background:#eaf1ff;color:var(--blue);}
+  .badge.b2{top:16%;left:44%;background:#fff;color:#c7cede;}
+  .badge.b3{top:2%;right:8%;background:#fff;color:#c7cede;}
+  .badge.b4{bottom:34%;right:4%;background:#fff;color:#c7cede;}
+  .shield{
+    position:absolute;left:16%;bottom:8%;font-size:70px;color:var(--blue);opacity:.9;
+  }
+
+  .perks{
+    display:flex;gap:14px;margin-top:26px;background:#fff;border-radius:14px;border:1px solid var(--border);
+    padding:20px;box-shadow:0 6px 20px rgba(18,33,62,.05);
+  }
+  .perk{flex:1;text-align:center;}
+  .perk .pi{
+    width:38px;height:38px;border-radius:50%;background:#eafaf2;color:var(--green);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:17px;
+  }
+  .perk b{display:block;font-size:13px;color:var(--ink);margin-bottom:4px;}
+  .perk span{font-size:11.5px;color:var(--muted);}
+
+  .card{
+    background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:44px 42px;
+  }
+  .card h2{font-size:24px;font-weight:800;text-align:center;color:var(--ink);}
+  .card .sub{text-align:center;color:var(--muted);font-size:14px;margin-top:6px;margin-bottom:30px;}
+
+  .field{margin-bottom:20px;}
+  .field label{display:block;font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:8px;}
+  .input-wrap{
+    display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;
+    padding:12px 14px;background:#fbfcfe;
+  }
+  .input-wrap:focus-within{border-color:var(--blue);background:#fff;}
+  .input-wrap input{
+    border:none;outline:none;background:transparent;flex:1;font-size:14px;color:var(--ink);
+  }
+  .input-wrap .icon{color:#9aa7c2;font-size:15px;flex-shrink:0;}
+  .input-wrap .toggle{cursor:pointer;color:#9aa7c2;font-size:15px;background:none;border:none;}
+
+  .row-between{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;font-size:13.5px;}
+  .remember{display:flex;align-items:center;gap:8px;color:var(--ink);}
+  .remember input{width:16px;height:16px;accent-color:var(--blue);}
+  .forgot{color:var(--blue);font-weight:600;}
+  .forgot:hover{text-decoration:underline;}
+
+  .btn-login{
+    width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(90deg,var(--blue),#5b8ef5);
+    color:#fff;font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:opacity .2s;
+  }
+  .btn-login:hover{opacity:.92;}
+
+  .divider{display:flex;align-items:center;gap:14px;margin:22px 0;color:var(--muted);font-size:12.5px;}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border);}
+
+  .btn-google{
+    width:100%;padding:13px;border:1px solid var(--border);border-radius:10px;background:#fff;
+    display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:14px;color:var(--ink);
+    cursor:pointer;
+  }
+  .btn-google:hover{background:#fafbfd;}
+
+  .signup-line{text-align:center;margin-top:24px;font-size:13.5px;color:var(--muted);}
+  .signup-line a{color:var(--blue);font-weight:700;}
+
+  .error{color:#d1495b;font-size:12.5px;margin-top:6px;display:none;}
+
+  .footer-strip{
+    margin-top:60px;border-top:1px solid var(--border);padding:30px 24px;
+  }
+  .footer-grid{
+    max-width:1200px;margin:0 auto;display:flex;justify-content:space-around;flex-wrap:wrap;gap:24px;
+  }
+  .fitem{display:flex;align-items:center;gap:10px;}
+  .fitem .fi{
+    width:36px;height:36px;border-radius:50%;background:#eef3ff;color:var(--blue);
+    display:flex;align-items:center;justify-content:center;font-size:15px;
+  }
+  .fitem b{display:block;font-size:13px;color:var(--ink);}
+  .fitem span{font-size:11.5px;color:var(--muted);}
+  .copyright{text-align:center;color:var(--muted);font-size:12.5px;margin-top:26px;}
+
+  @media (max-width:880px){
+    .grid{grid-template-columns:1fr;}
+    .card{padding:30px 24px;}
+    .left h1{font-size:30px;}
+  }
+</style>
+<link rel="stylesheet" href="shared-dark.css">
+</head>
+<body>
+
+<div class="wrap">
+  <a href="index.html" class="top-logo">
+    <span class="logo-mark">🩺</span>
+    <span class="logo-text"><span class="blue">Medi</span><span class="green">Scan AI</span></span>
+  </a>
+
+  <div class="grid">
+    <div class="left">
+      <h1>AI-Powered<br>Health Consultation<br><span class="accent">for Humans &amp; Animals</span></h1>
+      <p>Upload an image, describe your symptoms, and get AI-powered preliminary health guidance in seconds.</p>
+
+      <div class="art">
+        <div class="badge b1">🤖</div>
+        <div class="badge b2">📈</div>
+        <div class="badge b3">✚</div>
+        <div class="badge b4">🐾</div>
+        <div class="shield">🛡️</div>
+        <div class="art-emoji">🩺🐶🐱</div>
+      </div>
+
+      <div class="perks">
+        <div class="perk"><div class="pi">🛡️</div><b>Secure &amp; Private</b><span>Your data is safe with us</span></div>
+        <div class="perk"><div class="pi">⚡</div><b>AI-Powered</b><span>Advanced AI for accurate insights</span></div>
+        <div class="perk"><div class="pi">🕒</div><b>Quick Results</b><span>Get guidance in just seconds</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Welcome Back!</h2>
+      <div class="sub">Login to your account</div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Email</label>
+          <div class="input-wrap">
+            <span class="icon">✉️</span>
+            <input type="email" id="email" placeholder="Enter your email address" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <span class="icon">🔒</span>
+            <input type="password" id="password" placeholder="Enter your password" required>
+            <button type="button" class="toggle" onclick="togglePw()">👁️</button>
+          </div>
+        </div>
+
+        <div class="row-between">
+          <label class="remember"><input type="checkbox" checked> Remember Me</label>
+          <a href="#" class="forgot">Forgot Password?</a>
+        </div>
+
+        <button type="submit" class="btn-login">→ Login</button>
+      </form>
+
+      <div class="divider">OR</div>
+
+      <button class="btn-google" onclick="alert('Google sign-in would go here')">
+        <span style="font-weight:700;">G</span> Sign in with Google
+      </button>
+
+      <div class="signup-line">Don't have an account? <a href="signup.html">Create Account</a></div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <div class="footer-grid">
+      <div class="fitem"><div class="fi">🛡️</div><div><b>HIPAA Compliant</b><span>Your data is protected</span></div></div>
+      <div class="fitem"><div class="fi">🔒</div><div><b>End-to-End Encrypted</b><span>Secure &amp; confidential</span></div></div>
+      <div class="fitem"><div class="fi">👥</div><div><b>Trusted by Thousands</b><span>Users worldwide</span></div></div>
+      <div class="fitem"><div class="fi">🏅</div><div><b>AI Verified</b><span>Reliable AI insights</span></div></div>
+    </div>
+    <div class="copyright">© 2024 MediScan AI. All rights reserved.</div>
+  </div>
+</div>
+
+<script>
+function togglePw(){
+  const pw = document.getElementById('password');
+  pw.type = pw.type === 'password' ? 'text' : 'password';
+}
+document.getElementById('loginForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  window.location.href = 'dashboard.html';
+});
+</script>
+
+<script src="shared.js"></script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediScan AI — Human Consultation</title>
+<style>
+  :root{
+    --blue:#2f6fed;
+    --blue-dark:#1e4fc4;
+    --green:#3cb897;
+    --purple:#7c6ff0;
+    --orange:#f5a623;
+    --pink:#ef5f8a;
+    --ink:#12213e;
+    --muted:#5b6b8c;
+    --border:#e6ebf5;
+    --bg-soft:#f6f9fd;
+    --radius:16px;
+    --shadow-sm:0 4px 14px rgba(18,33,62,0.06);
+    --shadow:0 10px 30px rgba(18,33,62,0.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--bg-soft);
+  }
+  a{text-decoration:none;color:inherit;}
+  ul{list-style:none;}
+  button{font-family:inherit;}
+  input,select,textarea{font-family:inherit;}
+
+  .app{display:grid;grid-template-columns:270px 1fr;min-height:100vh;}
+
+  /* Sidebar (shared) */
+  .sidebar{background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:26px 20px;}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:34px;padding:0 6px;}
+  .brand .mark{font-size:26px;}
+  .brand .name{font-weight:700;font-size:17px;}
+  .brand .name .blue{color:var(--blue);}
+  .brand .name .green{color:var(--green);}
+  .brand .sub{display:block;font-size:11px;font-weight:400;color:var(--muted);}
+  .nav-main{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;font-size:14.5px;font-weight:500;color:var(--ink);cursor:pointer;}
+  .nav-item .ic{width:20px;text-align:center;font-size:16px;}
+  .nav-item:hover{background:var(--bg-soft);}
+  .nav-item.active{background:#eaf1ff;color:var(--blue);font-weight:700;}
+  .nav-divider{height:1px;background:var(--border);margin:14px 0;}
+  .help-box{background:#eaf1ff;border-radius:14px;padding:18px;margin-top:16px;}
+  .help-box b{font-size:13.5px;color:var(--blue-dark);}
+  .help-box p{font-size:12px;color:var(--muted);margin:8px 0 14px;}
+  .chat-btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    background:#fff;border:1px solid #cfe0ff;border-radius:10px;padding:10px 14px;
+    font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;
+  }
+  .safe-box{background:#eafbf3;border-radius:14px;padding:16px;margin-top:14px;}
+  .safe-box b{font-size:13px;color:#1e7a55;display:flex;align-items:center;gap:6px;}
+  .safe-box p{font-size:11.5px;color:var(--muted);margin-top:6px;}
+
+  /* Main */
+  .main{display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 34px;background:#fff;border-bottom:1px solid var(--border);}
+  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);}
+  .breadcrumb b{color:var(--ink);font-weight:700;}
+  .breadcrumb .sep{color:#c7cede;}
+  .topbar-right{display:flex;align-items:center;gap:22px;}
+  .bell{position:relative;font-size:19px;cursor:pointer;}
+  .bell .dot{position:absolute;top:-6px;right:-8px;background:var(--pink);color:#fff;font-size:10px;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .user-chip{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .avatar-circle{width:42px;height:42px;border-radius:50%;background:#ffe3c2;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .user-chip b{font-size:14px;display:block;}
+  .user-chip span{font-size:11.5px;color:var(--muted);}
+  .caret{font-size:10px;color:var(--muted);}
+
+  .content{padding:28px 34px 40px;}
+
+  .page-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:26px;gap:20px;flex-wrap:wrap;}
+  .page-head-left{display:flex;gap:16px;align-items:flex-start;}
+  .page-ic{width:54px;height:54px;border-radius:14px;background:#eaf1ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+  .page-head h1{font-size:24px;font-weight:800;}
+  .page-head p{font-size:13.5px;color:var(--muted);margin-top:4px;max-width:520px;}
+  .disclaimer{
+    background:#eaf1ff;border-radius:12px;padding:14px 18px;display:flex;gap:10px;font-size:12.5px;color:var(--blue-dark);
+    max-width:340px;
+  }
+
+  .form-layout{display:grid;grid-template-columns:2.1fr 1fr;gap:22px;}
+  .panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow-sm);}
+
+  .section-title{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;margin-bottom:20px;}
+  .section-title .si{color:var(--blue);font-size:17px;}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px;}
+  .form-grid.two{grid-template-columns:1fr 1fr;}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:8px;}
+  .field label .req{color:#e15b5b;}
+  .input-wrap{
+    display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;
+    padding:11px 14px;background:#fbfcfe;
+  }
+  .input-wrap:focus-within{border-color:var(--blue);background:#fff;}
+  .input-wrap input, .input-wrap select{border:none;outline:none;background:transparent;flex:1;font-size:13.5px;color:var(--ink);}
+  .input-wrap .icon{color:#9aa7c2;font-size:14px;flex-shrink:0;}
+
+  textarea{
+    width:100%;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13.5px;
+    resize:vertical;min-height:110px;background:#fbfcfe;outline:none;color:var(--ink);
+  }
+  textarea:focus{border-color:var(--blue);background:#fff;}
+  .char-count{text-align:right;font-size:11.5px;color:var(--muted);margin-top:6px;}
+
+  .upload-title{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:700;color:var(--blue-dark);margin-bottom:16px;}
+  .dropzone{
+    border:2px dashed #b9cdfa;border-radius:14px;padding:34px 16px;text-align:center;background:#f7faff;cursor:pointer;
+    transition:background .2s;
+  }
+  .dropzone:hover, .dropzone.dragover{background:#eef4ff;}
+  .dropzone .cloud{font-size:44px;color:var(--blue);margin-bottom:14px;}
+  .dropzone .main-text{font-size:13.5px;color:var(--ink);margin-bottom:6px;}
+  .dropzone .main-text a{color:var(--blue);font-weight:700;}
+  .dropzone .sub-text{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .preview-img{max-width:100%;border-radius:10px;margin-top:14px;display:none;}
+
+  .tips-box{background:#eafbf3;border-radius:12px;padding:16px;margin-top:20px;}
+  .tips-box .th{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#1e7a55;margin-bottom:10px;}
+  .tips-box ul li{font-size:12.5px;color:var(--ink);display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;}
+  .tips-box ul li .c{color:var(--green);font-weight:800;}
+
+  .form-footer{
+    display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:20px;
+    border-top:1px solid var(--border);flex-wrap:wrap;gap:14px;
+  }
+  .secure-note{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);}
+  .footer-actions{display:flex;gap:12px;}
+  .btn-clear{
+    padding:12px 20px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--blue);
+    font-weight:600;font-size:13.5px;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  .btn-analyze{
+    padding:12px 26px;border:none;border-radius:10px;background:linear-gradient(90deg,var(--blue),#5b8ef5);
+    color:#fff;font-weight:700;font-size:13.5px;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  .btn-analyze:hover{opacity:.92;}
+
+  .status-panel{
+    grid-column:1 / -1;background:#fff;border:1px solid var(--border);border-radius:var(--radius);
+    padding:26px 30px;margin-top:22px;display:flex;flex-direction:column;gap:20px;
+  }
+  .status-top{display:flex;align-items:center;gap:20px;}
+  .brain-ring{
+    width:70px;height:70px;border-radius:50%;border:3px dashed #c7dbff;display:flex;align-items:center;justify-content:center;
+    font-size:30px;flex-shrink:0;
+  }
+  .status-top h3{font-size:16px;margin-bottom:4px;}
+  .status-top p{font-size:13px;color:var(--muted);}
+  .steps-row{display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:18px;flex-wrap:wrap;gap:12px;}
+  .step-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+  .step-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;}
+  .step-item.active{color:var(--blue);font-weight:700;}
+  .step-item.active .step-dot{border-color:var(--blue);background:var(--blue);position:relative;}
+
+  @media (max-width:1100px){
+    .form-layout{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .form-grid{grid-template-columns:1fr;}
+    .steps-row{flex-direction:column;}
+  }
+</style>
+<link rel="stylesheet" href="shared-dark.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <a href="dashboard.html" class="brand">
+      <span class="mark">🩺</span>
+      <span class="name"><span class="blue">Medi</span><span class="green">Scan AI</span><span class="sub" data-i18n="brand_sub">AI Healthcare Assistant</span></span>
+    </a>
+
+    <div class="nav-main">
+      <a href="dashboard.html" class="nav-item"><span class="ic">🏠</span> <span data-i18n="nav_dashboard">Dashboard</span></a>
+      <a href="human-consultation.html" class="nav-item active"><span class="ic">🧑</span> <span data-i18n="nav_human_health">Human Health</span></a>
+      <a href="animal-consultation.html" class="nav-item"><span class="ic">🐾</span> <span data-i18n="nav_animal_health">Animal Health</span></a>
+      <a href="consultation-history.html" class="nav-item"><span class="ic">📋</span> <span data-i18n="nav_consultation_history">Consultation History</span></a>
+      <a href="profile.html" class="nav-item"><span class="ic">👤</span> <span data-i18n="nav_profile">Profile</span></a>
+      <a href="settings.html" class="nav-item"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Settings</span></a>
+      <div class="nav-divider"></div>
+      <a href="index.html" class="nav-item"><span class="ic">↩️</span> <span data-i18n="nav_logout">Logout</span></a>
+    </div>
+
+    <div class="help-box">
+      <b data-i18n="help_title">Need Help?</b>
+      <p data-i18n="help_desc">Talk to our AI Assistant or contact a professional.</p>
+      <button class="chat-btn">💬 <span data-i18n="help_chat_btn">Chat with AI Assistant</span></button>
+    </div>
+
+    <div class="safe-box">
+      <b>🛡️ Your Data is Safe</b>
+      <p>We use end-to-end encryption to keep your data private.</p>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="breadcrumb">
+        <a href="dashboard.html">Dashboard</a><span class="sep">›</span>
+        <a href="human-consultation.html">Human Health</a><span class="sep">›</span>
+        <b>New Consultation</b>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" data-dark-toggle-btn style="width:38px;height:38px;border-radius:50%;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;border:none;">🌙</button>
+        <div class="lang-chip" style="display:flex;align-items:center;gap:8px;background:var(--bg-soft);border-radius:20px;padding:8px 14px;font-size:13.5px;">🌐 <span data-lang-label>English</span></div>
+        <div class="bell">🔔<span class="dot">3</span></div>
+        <div class="user-chip">
+          <div class="avatar-circle">🧑</div>
+          <div><b>Hello, User</b><span>Premium Member</span></div>
+          <span class="caret">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div class="page-head-left">
+          <div class="page-ic">🩺</div>
+          <div>
+            <h1 data-i18n="human_consultation_title">Human Consultation</h1>
+            <p data-i18n="human_consultation_sub">Provide your health details and symptoms. Our AI will analyze and provide insights.</p>
+          </div>
+        </div>
+        <div class="disclaimer">🛡️ This is an AI-generated analysis and not a medical diagnosis. Please consult a doctor for final advice.</div>
+      </div>
+
+      <form id="consultForm">
+        <div class="form-layout">
+          <div class="panel">
+            <div class="section-title"><span class="si">👤</span> Personal Information</div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Name <span class="req">*</span></label>
+                <div class="input-wrap"><span class="icon">👤</span><input type="text" placeholder="Enter your full name" required></div>
+              </div>
+              <div class="field">
+                <label>Age <span class="req">*</span></label>
+                <div class="input-wrap"><span class="icon">📅</span><input type="number" placeholder="Enter your age" required></div>
+              </div>
+              <div class="field">
+                <label>Gender <span class="req">*</span></label>
+                <div class="input-wrap"><select required>
+                  <option value="" selected disabled>Select gender</option>
+                  <option>Male</option><option>Female</option><option>Other</option>
+                </select></div>
+              </div>
+            </div>
+            <div class="form-grid two">
+              <div class="field">
+                <label>Height (cm) <span class="req">*</span></label>
+                <div class="input-wrap"><span class="icon">📏</span><input type="number" placeholder="Enter height in cm" required></div>
+              </div>
+              <div class="field">
+                <label>Weight (kg) <span class="req">*</span></label>
+                <div class="input-wrap"><span class="icon">⚖️</span><input type="number" placeholder="Enter weight in kg" required></div>
+              </div>
+            </div>
+            <div class="form-grid two">
+              <div class="field">
+                <label>Existing Diseases (if any)</label>
+                <div class="input-wrap"><span class="icon">❤️</span><input type="text" placeholder="e.g., Diabetes, Asthma, Hypertension"></div>
+              </div>
+              <div class="field">
+                <label>Allergies (if any)</label>
+                <div class="input-wrap"><span class="icon">🛡️</span><input type="text" placeholder="e.g., Pollen, Penicillin, Dust"></div>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top:8px;"><span class="si">📄</span> Symptoms</div>
+            <div class="field">
+              <label>Describe your symptoms in detail <span class="req">*</span></label>
+              <textarea id="symptoms" maxlength="1000" placeholder="Describe your symptoms, how long you have been experiencing them, severity, triggers, and any other relevant details..." required></textarea>
+              <div class="char-count"><span id="charCount">0</span> / 1000</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel">
+              <div class="upload-title">⬆️ Upload Image (Optional)</div>
+              <div class="dropzone" id="dropzone">
+                <div class="cloud">☁️</div>
+                <div class="main-text">Drag &amp; drop your image here<br>or <a href="#">click to browse</a></div>
+                <div class="sub-text">Supported formats: JPG, PNG, JPEG</div>
+                <div class="sub-text">Max file size: 10MB</div>
+                <input type="file" id="fileInput" accept="image/png, image/jpeg" style="display:none;">
+                <img id="previewImg" class="preview-img">
+              </div>
+
+              <div class="tips-box">
+                <div class="th">💡 Tips for better results</div>
+                <ul>
+                  <li><span class="c">✔</span> Upload clear, well-lit images</li>
+                  <li><span class="c">✔</span> Close-up shots work best</li>
+                  <li><span class="c">✔</span> Ensure the area of concern is visible</li>
+                  <li><span class="c">✔</span> Supported formats: JPG, PNG, JPEG</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="status-panel" style="grid-column:1/-1;">
+            <div class="form-footer" style="border:none;margin:0;padding:0;">
+              <div class="secure-note">🛡️ Your information is secure and confidential</div>
+              <div class="footer-actions">
+                <button type="button" class="btn-clear" id="clearBtn">↻ Clear Form</button>
+                <button type="submit" class="btn-analyze">✨ Analyze with AI →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div class="status-panel">
+        <div class="status-top">
+          <div class="brain-ring">🧠</div>
+          <div>
+            <h3>Ready to analyze your health information</h3>
+            <p>Click on "Analyze with AI" to get personalized health insights and recommendations.</p>
+          </div>
+        </div>
+        <div class="steps-row">
+          <div class="step-item active"><span class="step-dot"></span> Collecting Information</div>
+          <div class="step-item"><span class="step-dot"></span> Analyzing with AI</div>
+          <div class="step-item"><span class="step-dot"></span> Generating Report</div>
+          <div class="step-item"><span class="step-dot"></span> Providing Insights</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const textarea = document.getElementById('symptoms');
+  const charCount = document.getElementById('charCount');
+  textarea.addEventListener('input', () => { charCount.textContent = textarea.value.length; });
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const previewImg = document.getElementById('previewImg');
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if(fileInput.files.length) handleFile(fileInput.files[0]); });
+
+  function handleFile(file){
+    if(!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewImg.src = e.target.result;
+      previewImg.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    document.getElementById('consultForm').reset();
+    charCount.textContent = '0';
+    previewImg.style.display = 'none';
+    previewImg.src = '';
+  });
+
+  document.getElementById('consultForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    try {
+      if(previewImg.src){ sessionStorage.setItem('mediscan_uploaded_image', previewImg.src); }
+    } catch(err) {}
+    window.location.href = 'analysis-results.html';
+  });
+</script>
+
+<script src="shared.js"></script>
+</body>
+</html>
