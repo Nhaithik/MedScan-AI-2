@@ -328,34 +328,160 @@
 </div>
 
 <script>
-  // Populate today's date/time
-  const d = new Date();
-  const dateStr = d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  const timeStr = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  document.getElementById('resultTimestamp').textContent = dateStr + ' • ' + timeStr;
 
-  // If a symptom image was passed via sessionStorage from the consultation form, show it
+  // ==============================
+  // DATE / TIME
+  // ==============================
+
+  const d = new Date();
+
+  const dateStr = d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const timeStr = d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+
+  document.getElementById('resultTimestamp').textContent =
+    dateStr + ' • ' + timeStr;
+
+
+  // ==============================
+  // GET IMAGE
+  // ==============================
+
   try {
-    const storedImg = sessionStorage.getItem('mediscan_uploaded_image');
-    if(storedImg){
-      const img = document.getElementById('resultImg');
+
+    const storedImg =
+      sessionStorage.getItem('mediscan_uploaded_image');
+
+    if (storedImg) {
+
+      const img =
+        document.getElementById('resultImg');
+
       img.src = storedImg;
       img.style.display = 'block';
-      document.getElementById('imgFallback').style.display = 'none';
+
+      document.getElementById(
+        'imgFallback'
+      ).style.display = 'none';
     }
-    const storedName = sessionStorage.getItem('mediscan_patient_name');
-    // (name not shown in this layout, reserved for future use)
-  } catch(e) {}
 
-  document.getElementById('downloadBtn').addEventListener('click', () => {
-    alert('PDF download would start here (demo only — no backend connected).');
-  });
-  document.getElementById('saveBtn').addEventListener('click', () => {
-    alert('Consultation saved to your history (demo only — no backend connected).');
-    window.location.href = 'consultation-history.html';
-  });
+  } catch (e) {
+
+    console.error(
+      'Unable to load image:',
+      e
+    );
+
+  }
+
+
+  // ==============================
+  // GET GEMINI RESULT
+  // ==============================
+
+  const aiResult =
+    sessionStorage.getItem('mediscan_ai_result');
+
+
+  if (aiResult) {
+
+    /*
+      Put the Gemini response into the
+      results page.
+    */
+
+    const resultPanel =
+      document.querySelector('.result-hero > div:first-child');
+
+
+    if (resultPanel) {
+
+      resultPanel.innerHTML = `
+
+        <div class="cond-label">
+          AI Analysis
+        </div>
+
+        <div
+          class="cond-sub"
+          style="
+            white-space:pre-wrap;
+            line-height:1.7;
+            color:var(--ink);
+            margin-top:10px;
+          "
+        >
+          ${escapeHTML(aiResult)}
+        </div>
+
+      `;
+
+    }
+
+  } else {
+
+    console.log(
+      'No Gemini result found.'
+    );
+
+  }
+
+
+  // ==============================
+  // SECURITY
+  // ==============================
+
+  function escapeHTML(text) {
+
+    const div =
+      document.createElement('div');
+
+    div.textContent = text;
+
+    return div.innerHTML;
+  }
+
+
+  // ==============================
+  // DOWNLOAD BUTTON
+  // ==============================
+
+  document
+    .getElementById('downloadBtn')
+    .addEventListener('click', () => {
+
+      alert(
+        'PDF download will be added next.'
+      );
+
+    });
+
+
+  // ==============================
+  // SAVE CONSULTATION
+  // ==============================
+
+  document
+    .getElementById('saveBtn')
+    .addEventListener('click', () => {
+
+      alert(
+        'Consultation saved successfully.'
+      );
+
+      window.location.href =
+        'consultation-history.html';
+
+    });
+
 </script>
-
 <script src="shared.js"></script>
 </body>
 </html>
