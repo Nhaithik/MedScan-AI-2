@@ -165,6 +165,155 @@
     .app{grid-template-columns:1fr;}
     .sidebar{display:none;}
   }
+
+  <script>
+
+  // ==========================================
+  // DATE AND TIME
+  // ==========================================
+
+  const d = new Date();
+
+  const dateStr = d.toLocaleDateString(
+    'en-US',
+    {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }
+  );
+
+  const timeStr = d.toLocaleTimeString(
+    'en-US',
+    {
+      hour: 'numeric',
+      minute: '2-digit'
+    }
+  );
+
+  document.getElementById(
+    'resultTimestamp'
+  ).textContent =
+    'Completed on ' +
+    dateStr +
+    ', ' +
+    timeStr;
+
+
+  // ==========================================
+  // LOAD REAL ANIMAL GEMINI RESULT
+  // ==========================================
+
+  const aiResult =
+    sessionStorage.getItem(
+      'mediscan_animal_ai_result'
+    );
+
+
+  const resultBox =
+    document.getElementById(
+      'animalAIResult'
+    );
+
+
+  if (aiResult) {
+
+    resultBox.textContent =
+      aiResult;
+
+  } else {
+
+    resultBox.textContent =
+      'No AI analysis was found. Please return to Animal Consultation and run the analysis again.';
+
+  }
+
+
+  // ==========================================
+  // LOAD ANIMAL IMAGE
+  // ==========================================
+
+  try {
+
+    const storedImg =
+      sessionStorage.getItem(
+        'mediscan_animal_uploaded_image'
+      );
+
+
+    if (storedImg) {
+
+      const img =
+        document.getElementById(
+          'resultImg'
+        );
+
+
+      img.src =
+        storedImg;
+
+
+      img.style.display =
+        'block';
+
+
+      document.getElementById(
+        'imgFallback'
+      ).style.display =
+        'none';
+
+    }
+
+  } catch (e) {
+
+    console.error(
+      'Could not load animal image:',
+      e
+    );
+
+  }
+
+
+  // ==========================================
+  // DOWNLOAD BUTTON
+  // ==========================================
+
+  document
+    .getElementById('downloadBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        alert(
+          'PDF download will be connected later.'
+        );
+
+      }
+    );
+
+
+  // ==========================================
+  // SAVE CONSULTATION
+  // ==========================================
+
+  document
+    .getElementById('saveBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        alert(
+          'Consultation saved to your history!'
+        );
+
+        window.location.href =
+          'consultation-history.html';
+
+      }
+    );
+
+</script>
+
 </style>
 <link rel="stylesheet" href="shared-dark.css">
 </head>
