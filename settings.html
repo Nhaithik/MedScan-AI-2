@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediScan AI — Settings</title>
+<style>
+  :root{
+    --purple:#7c6ff0;
+    --purple-dark:#5b4fd6;
+    --blue:#2f6fed;
+    --green:#3cb897;
+    --red:#e15b5b;
+    --pink:#ef5f8a;
+    --ink:#12213e;
+    --muted:#5b6b8c;
+    --border:#e6ebf5;
+    --bg-soft:#f6f9fd;
+    --radius:16px;
+    --shadow-sm:0 4px 14px rgba(18,33,62,0.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--bg-soft);
+  }
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;}
+  input,select{font-family:inherit;}
+
+  .app{display:grid;grid-template-columns:270px 1fr;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:26px 20px;}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:34px;padding:0 6px;}
+  .brand .mark{font-size:26px;}
+  .brand .name{font-weight:700;font-size:17px;}
+  .brand .name .blue{color:var(--blue);}
+  .brand .name .green{color:var(--green);}
+  .brand .sub{display:block;font-size:11px;font-weight:400;color:var(--muted);}
+  .nav-main{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;font-size:14.5px;font-weight:500;color:var(--ink);cursor:pointer;}
+  .nav-item .ic{width:20px;text-align:center;font-size:16px;}
+  .nav-item:hover{background:var(--bg-soft);}
+  .nav-item.active{background:#f1eefe;color:var(--purple-dark);font-weight:700;}
+  .nav-divider{height:1px;background:var(--border);margin:14px 0;}
+  .help-box{background:#f1eefe;border-radius:14px;padding:18px;margin-top:16px;}
+  .help-box b{font-size:13.5px;color:var(--purple-dark);}
+  .help-box p{font-size:12px;color:var(--muted);margin:8px 0 14px;}
+  .chat-btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    background:#fff;border:1px solid #d9d0fc;border-radius:10px;padding:10px 14px;
+    font-size:13px;font-weight:600;color:var(--purple-dark);cursor:pointer;
+  }
+  .bot-emoji{font-size:70px;text-align:center;margin-top:14px;}
+
+  /* Main */
+  .main{display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 34px;background:#fff;border-bottom:1px solid var(--border);}
+  .burger{font-size:20px;color:var(--ink);cursor:pointer;}
+  .topbar-right{display:flex;align-items:center;gap:18px;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:50%;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;
+    font-size:16px;cursor:pointer;border:none;
+  }
+  .lang-chip{
+    display:flex;align-items:center;gap:8px;background:var(--bg-soft);border-radius:20px;padding:8px 14px;font-size:13.5px;cursor:default;
+  }
+  .bell{position:relative;font-size:19px;cursor:pointer;}
+  .bell .dot{position:absolute;top:-6px;right:-8px;background:var(--pink);color:#fff;font-size:10px;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .user-chip{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .avatar-circle{width:42px;height:42px;border-radius:50%;background:#ffe3c2;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .user-chip b{font-size:14px;display:block;}
+  .user-chip span{font-size:11.5px;color:var(--muted);}
+  .caret{font-size:10px;color:var(--muted);}
+
+  .content{padding:28px 34px 40px;max-width:760px;}
+  .content h1{font-size:26px;font-weight:800;}
+  .content > p{font-size:13.5px;color:var(--muted);margin-top:6px;margin-bottom:24px;}
+
+  .panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow-sm);margin-bottom:20px;}
+  .panel:last-of-type{margin-bottom:0;}
+
+  .section-title{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;margin-bottom:20px;}
+  .section-title .si{font-size:20px;}
+
+  .toggle-row{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 0;border-bottom:1px solid var(--border);gap:14px;}
+  .toggle-row:first-of-type{padding-top:0;}
+  .toggle-row:last-child{border-bottom:none;padding-bottom:0;}
+  .toggle-row .t-lab{font-size:15px;font-weight:700;margin-bottom:6px;}
+  .toggle-row .t-sub{font-size:13px;color:var(--muted);max-width:420px;line-height:1.5;}
+  .switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-top:4px;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{
+    position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#d5dae6;border-radius:24px;transition:.2s;
+  }
+  .slider::before{
+    content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;
+  }
+  .switch input:checked + .slider{background:var(--purple);}
+  .switch input:checked + .slider::before{transform:translateX(20px);}
+
+  .lang-block{padding-top:18px;}
+  select.lang-select{
+    width:100%;border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;color:var(--ink);
+    margin-top:12px;outline:none;background:#fbfcfe;cursor:pointer;
+  }
+  select.lang-select:focus{border-color:var(--purple);}
+
+  .pw-panel p{font-size:13px;color:var(--muted);margin-bottom:18px;}
+  .btn-outline-purple{
+    width:100%;border:1px solid var(--purple);color:var(--purple-dark);background:#fff;border-radius:10px;padding:13px;
+    font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-outline-purple:hover{background:#f7f6ff;}
+
+  .danger-panel{background:#fff;border:1px solid #f6d0d0;}
+  .danger-title{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;color:var(--red);margin-bottom:14px;}
+  .danger-title .si{background:#fdeaea;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:16px;}
+  .danger-panel p{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5;}
+  .btn-danger{
+    width:100%;border:1px solid var(--red);color:var(--red);background:#fff;border-radius:10px;padding:13px;
+    font-size:14px;font-weight:700;cursor:pointer;
+  }
+  .btn-danger:hover{background:#fdeaea;}
+
+  /* Modal */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(18,33,62,.5);display:none;align-items:center;justify-content:center;z-index:100;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:#fff;border-radius:16px;padding:30px;width:380px;max-width:90vw;box-shadow:0 20px 50px rgba(18,33,62,.2);
+  }
+  .modal h3{font-size:17px;margin-bottom:6px;}
+  .modal p{font-size:13px;color:var(--muted);margin-bottom:18px;}
+  .modal .field{margin-bottom:14px;}
+  .modal label{font-size:12.5px;font-weight:600;display:block;margin-bottom:6px;}
+  .modal input{
+    width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13.5px;outline:none;
+  }
+  .modal input:focus{border-color:var(--purple);}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .modal-actions button{flex:1;border-radius:8px;padding:10px;font-size:13.5px;font-weight:700;cursor:pointer;}
+  .modal-cancel{border:1px solid var(--border);background:#fff;color:var(--ink);}
+  .modal-confirm{border:none;background:var(--purple);color:#fff;}
+  .modal-confirm.danger{background:var(--red);}
+
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+  }
+</style>
+<link rel="stylesheet" href="shared-dark.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <a href="dashboard.html" class="brand">
+      <span class="mark">🩺</span>
+      <span class="name"><span class="blue">Medi</span><span class="green">Scan AI</span><span class="sub" data-i18n="brand_sub">AI Healthcare Assistant</span></span>
+    </a>
+
+    <div class="nav-main">
+      <a href="dashboard.html" class="nav-item"><span class="ic">🏠</span> <span data-i18n="nav_dashboard">Dashboard</span></a>
+      <a href="human-consultation.html" class="nav-item"><span class="ic">🧑</span> <span data-i18n="nav_human_health">Human Health</span></a>
+      <a href="animal-consultation.html" class="nav-item"><span class="ic">🐾</span> <span data-i18n="nav_animal_health">Animal Health</span></a>
+      <a href="consultation-history.html" class="nav-item"><span class="ic">🕒</span> <span data-i18n="nav_consultation_history">Consultation History</span></a>
+      <a href="profile.html" class="nav-item"><span class="ic">👤</span> <span data-i18n="nav_profile">Profile</span></a>
+      <a href="settings.html" class="nav-item active"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Settings</span></a>
+      <div class="nav-divider"></div>
+      <a href="index.html" class="nav-item"><span class="ic">↩️</span> <span data-i18n="nav_logout">Logout</span></a>
+    </div>
+
+    <div class="help-box">
+      <b data-i18n="help_title">Need Help?</b>
+      <p data-i18n="help_desc">Talk to our AI Assistant or contact a professional.</p>
+      <button class="chat-btn"><span data-i18n="help_chat_btn">Chat with AI Assistant</span></button>
+      <div class="bot-emoji">🤖</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="burger">☰</div>
+      <div class="topbar-right">
+        <button class="icon-btn" data-dark-toggle-btn>🌙</button>
+        <div class="lang-chip">🌐 <span data-lang-label>English</span></div>
+        <div class="bell">🔔<span class="dot">3</span></div>
+        <div class="user-chip">
+          <div class="avatar-circle">🧑</div>
+          <div><b>John Doe</b><span>Premium Member</span></div>
+          <span class="caret">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <h1 data-i18n="settings_title">Settings</h1>
+      <p data-i18n="settings_sub">Manage your account preferences and security.</p>
+
+      <div class="panel">
+        <div class="section-title"><span class="si">⚙️</span> <span data-i18n="account_settings_title">Account Settings</span></div>
+
+        <div class="toggle-row">
+          <div>
+            <div class="t-lab" data-i18n="dark_mode_label">Dark Mode</div>
+            <div class="t-sub" data-i18n="dark_mode_desc">Enable dark mode for a better viewing experience in low light.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" data-dark-toggle>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row lang-block" style="display:block;">
+          <div class="t-lab" data-i18n="language_label">Language</div>
+          <div class="t-sub" data-i18n="language_desc">Choose your preferred language.</div>
+          <select class="lang-select" data-lang-select>
+            <option value="en">English</option>
+            <option value="hi">हिंदी (Hindi)</option>
+            <option value="te">తెలుగు (Telugu)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel pw-panel">
+        <div class="section-title"><span class="si">🔒</span> <span data-i18n="change_password_title">Change Password</span></div>
+        <p data-i18n="change_password_desc">Update your password to keep your account secure.</p>
+        <button class="btn-outline-purple" id="changePwBtn">🔑 <span data-i18n="change_password_btn">Change Password</span></button>
+      </div>
+
+      <div class="panel danger-panel">
+        <div class="danger-title"><span class="si">🗑️</span> <span data-i18n="delete_account_title">Delete Account</span></div>
+        <p data-i18n="delete_account_desc">Once you delete your account, there is no going back. Please be certain.</p>
+        <button class="btn-danger" id="deleteAccBtn" data-i18n="delete_account_btn">Delete Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="pwModal">
+  <div class="modal">
+    <h3>Change Password</h3>
+    <p>Enter your current and new password.</p>
+    <div class="field"><label>Current Password</label><input type="password" id="curPw"></div>
+    <div class="field"><label>New Password</label><input type="password" id="newPw"></div>
+    <div class="field"><label>Confirm New Password</label><input type="password" id="confirmPw"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="cancelPw">Cancel</button>
+      <button class="modal-confirm" id="savePw">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>Delete Account?</h3>
+    <p>This action is permanent and cannot be undone. All your data, consultations, and reports will be deleted.</p>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="cancelDelete">Cancel</button>
+      <button class="modal-confirm danger" id="confirmDelete">Yes, Delete My Account</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const pwModal = document.getElementById('pwModal');
+  document.getElementById('changePwBtn').addEventListener('click', () => pwModal.classList.add('open'));
+  document.getElementById('cancelPw').addEventListener('click', () => pwModal.classList.remove('open'));
+  document.getElementById('savePw').addEventListener('click', () => {
+    const n = document.getElementById('newPw').value;
+    const c = document.getElementById('confirmPw').value;
+    if(!n || n !== c){ alert('Passwords do not match.'); return; }
+    alert('Password updated (demo only — no backend connected).');
+    pwModal.classList.remove('open');
+  });
+
+  const deleteModal = document.getElementById('deleteModal');
+  document.getElementById('deleteAccBtn').addEventListener('click', () => deleteModal.classList.add('open'));
+  document.getElementById('cancelDelete').addEventListener('click', () => deleteModal.classList.remove('open'));
+  document.getElementById('confirmDelete').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+</script>
+
+<script src="shared.js"></script>
+</body>
+</html>
