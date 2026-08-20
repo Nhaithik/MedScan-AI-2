@@ -238,7 +238,7 @@
           <div class="ti">📄</div>
           <div>
             <div class="lab">Total Consultations</div>
-            <div class="num">32</div>
+            <div class="num" id="totalConsultations">0</div>
             <div class="sub">This Month</div>
           </div>
         </div>
@@ -288,46 +288,6 @@
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr data-type="human" data-status="completed" data-search="john doe fungal skin infection tinea corporis">
-              <td class="date-cell"><b>May 20, 2025</b><span>11:45 AM</span></td>
-              <td><div class="patient-cell"><div class="p-avatar human">👤</div><div><b>John Doe</b><span>ID: HUM1256</span></div></div></td>
-              <td><span class="type-chip human">Human</span></td>
-              <td class="cond-cell"><b>Fungal Skin Infection</b><span>(Tinea Corporis)</span></td>
-              <td><span class="status-chip completed"><span class="d"></span>Completed</span></td>
-              <td><div class="action-btns"><button class="a-btn view">👁️</button><button class="a-btn download">⬇️</button><button class="a-btn delete">🗑️</button></div></td>
-            </tr>
-            <tr data-type="animal" data-status="progress" data-search="bruno canine skin allergy atopic dermatitis">
-              <td class="date-cell"><b>May 19, 2025</b><span>04:30 PM</span></td>
-              <td><div class="patient-cell"><div class="p-avatar animal">🐾</div><div><b>Bruno</b><span>ID: PET2458</span></div></div></td>
-              <td><span class="type-chip animal">Animal</span></td>
-              <td class="cond-cell"><b>Canine Skin Allergy</b><span>(Atopic Dermatitis)</span></td>
-              <td><span class="status-chip progress"><span class="d"></span>In Progress</span></td>
-              <td><div class="action-btns"><button class="a-btn view">👁️</button><button class="a-btn download">⬇️</button><button class="a-btn delete">🗑️</button></div></td>
-            </tr>
-            <tr data-type="human" data-status="completed" data-search="sarah smith migraine tension type">
-              <td class="date-cell"><b>May 18, 2025</b><span>09:15 AM</span></td>
-              <td><div class="patient-cell"><div class="p-avatar human">👤</div><div><b>Sarah Smith</b><span>ID: HUM1255</span></div></div></td>
-              <td><span class="type-chip human">Human</span></td>
-              <td class="cond-cell"><b>Migraine</b><span>(Tension Type)</span></td>
-              <td><span class="status-chip completed"><span class="d"></span>Completed</span></td>
-              <td><div class="action-btns"><button class="a-btn view">👁️</button><button class="a-btn download">⬇️</button><button class="a-btn delete">🗑️</button></div></td>
-            </tr>
-            <tr data-type="animal" data-status="completed" data-search="whiskers feline eye infection conjunctivitis">
-              <td class="date-cell"><b>May 17, 2025</b><span>02:20 PM</span></td>
-              <td><div class="patient-cell"><div class="p-avatar animal">🐾</div><div><b>Whiskers</b><span>ID: PET2457</span></div></div></td>
-              <td><span class="type-chip animal">Animal</span></td>
-              <td class="cond-cell"><b>Feline Eye Infection</b><span>(Conjunctivitis)</span></td>
-              <td><span class="status-chip completed"><span class="d"></span>Completed</span></td>
-              <td><div class="action-btns"><button class="a-btn view">👁️</button><button class="a-btn download">⬇️</button><button class="a-btn delete">🗑️</button></div></td>
-            </tr>
-            <tr data-type="human" data-status="completed" data-search="michael johnson acne vulgaris">
-              <td class="date-cell"><b>May 16, 2025</b><span>10:05 AM</span></td>
-              <td><div class="patient-cell"><div class="p-avatar human">👤</div><div><b>Michael Johnson</b><span>ID: HUM1254</span></div></div></td>
-              <td><span class="type-chip human">Human</span></td>
-              <td class="cond-cell"><b>Acne Vulgaris</b></td>
-              <td><span class="status-chip completed-red"><span class="d"></span>Completed</span></td>
-              <td><div class="action-btns"><button class="a-btn view">👁️</button><button class="a-btn download">⬇️</button><button class="a-btn delete">🗑️</button></div></td>
-            </tr>
           </tbody>
         </table>
 
@@ -350,34 +310,866 @@
   </div>
 </div>
 
-<script>
-  const searchInput = document.getElementById('searchInput');
-  const typeFilter = document.getElementById('typeFilter');
-  const statusFilter = document.getElementById('statusFilter');
-  const rows = document.querySelectorAll('#tableBody tr');
+<script type="module">
 
-  function applyFilters(){
-    const q = searchInput.value.trim().toLowerCase();
-    const type = typeFilter.value;
-    const status = statusFilter.value;
-    rows.forEach(row => {
-      const matchesSearch = !q || row.dataset.search.includes(q);
-      const matchesType = type === 'all' || row.dataset.type === type;
-      const matchesStatus = status === 'all' || row.dataset.status === status;
-      row.style.display = (matchesSearch && matchesType && matchesStatus) ? '' : 'none';
-    });
+  import {
+    auth,
+    db,
+    getDocs,
+    collection,
+    onAuthStateChanged
+  } from "./firebase.js";
+
+
+  // =========================================================
+  // ELEMENTS
+  // =========================================================
+
+  const tableBody =
+    document.getElementById("tableBody");
+
+  const totalConsultations =
+    document.getElementById("totalConsultations");
+
+  const searchInput =
+    document.getElementById("searchInput");
+
+  const typeFilter =
+    document.getElementById("typeFilter");
+
+  const statusFilter =
+    document.getElementById("statusFilter");
+
+  const resetBtn =
+    document.getElementById("resetBtn");
+
+
+  let allReports = [];
+
+
+  // =========================================================
+  // WAIT FOR FIREBASE LOGIN
+  // =========================================================
+
+  onAuthStateChanged(auth, async (user) => {
+
+    if (!user) {
+
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6"
+              style="text-align:center;padding:40px;">
+            Please log in to view your consultation history.
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+
+    console.log(
+      "Loading history for:",
+      user.email
+    );
+
+    console.log(
+      "UID:",
+      user.uid
+    );
+
+
+    await loadConsultations(user.uid);
+
+  });
+
+
+  // =========================================================
+  // LOAD USER CONSULTATIONS
+  // =========================================================
+
+  async function loadConsultations(uid) {
+
+    try {
+
+      const consultationsRef =
+        collection(
+          db,
+          "users",
+          uid,
+          "consultations"
+        );
+
+
+      const snapshot =
+        await getDocs(
+          consultationsRef
+        );
+
+
+      allReports = [];
+
+
+      snapshot.forEach((docSnapshot) => {
+
+        allReports.push({
+          id: docSnapshot.id,
+          ...docSnapshot.data()
+        });
+
+      });
+
+
+      // Newest first
+      allReports.sort((a, b) => {
+
+        const dateA =
+          a.createdAt?.toDate
+            ? a.createdAt.toDate()
+            : new Date(0);
+
+        const dateB =
+          b.createdAt?.toDate
+            ? b.createdAt.toDate()
+            : new Date(0);
+
+        return dateB - dateA;
+
+      });
+
+
+      console.log(
+        "Consultations loaded:",
+        allReports.length
+      );
+
+
+      totalConsultations.textContent =
+        allReports.length;
+
+
+      renderReports(
+        allReports
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load consultation history:",
+        error
+      );
+
+
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6"
+              style="text-align:center;padding:40px;color:#e15b5b;">
+            Unable to load your consultation history.
+            <br><br>
+            ${escapeHtml(error.message)}
+          </td>
+        </tr>
+      `;
+
+    }
+
   }
 
-  searchInput.addEventListener('input', applyFilters);
-  typeFilter.addEventListener('change', applyFilters);
-  statusFilter.addEventListener('change', applyFilters);
 
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    searchInput.value = '';
-    typeFilter.value = 'all';
-    statusFilter.value = 'all';
-    applyFilters();
-  });
+  // =========================================================
+  // RENDER REPORTS
+  // =========================================================
+
+  function renderReports(reports) {
+
+    if (!reports.length) {
+
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6"
+              style="text-align:center;padding:50px;color:#5b6b8c;">
+
+            <div style="font-size:35px;margin-bottom:12px;">
+              📋
+            </div>
+
+            <strong>No consultations yet</strong>
+
+            <div style="margin-top:6px;">
+              Your completed Human and Animal consultations
+              will appear here.
+            </div>
+
+          </td>
+        </tr>
+      `;
+
+      updateResultsNote(0);
+
+      return;
+    }
+
+
+    tableBody.innerHTML =
+      reports
+        .map(report => createRow(report))
+        .join("");
+
+
+    updateResultsNote(
+      reports.length
+    );
+
+  }
+
+
+  // =========================================================
+  // CREATE TABLE ROW
+  // =========================================================
+
+  function createRow(report) {
+
+    const type =
+      String(report.type || "Human").toLowerCase();
+
+    const isAnimal =
+      type === "animal";
+
+
+    const date =
+      report.createdAt?.toDate
+        ? report.createdAt.toDate()
+        : new Date();
+
+
+    const dateText =
+      date.toLocaleDateString(
+        "en-US",
+        {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        }
+      );
+
+
+    const timeText =
+      date.toLocaleTimeString(
+        "en-US",
+        {
+          hour: "numeric",
+          minute: "2-digit"
+        }
+      );
+
+
+    // -------------------------
+    // Patient name
+    // -------------------------
+
+    let patientName = "User";
+
+
+    if (isAnimal) {
+
+      patientName =
+        report.breed ||
+        report.animalType ||
+        "Animal";
+
+    } else {
+
+      patientName =
+        report.consultationData?.Name ||
+        report.consultationData?.name ||
+        "User";
+
+    }
+
+
+    // -------------------------
+    // Condition
+    // -------------------------
+
+    const condition =
+      extractCondition(
+        report.aiResult
+      );
+
+
+    // -------------------------
+    // Status
+    // -------------------------
+
+    const status =
+      String(
+        report.status || "Completed"
+      );
+
+
+    const statusClass =
+      status.toLowerCase() === "completed"
+        ? "completed"
+        : "progress";
+
+
+    const typeClass =
+      isAnimal
+        ? "animal"
+        : "human";
+
+
+    const avatar =
+      isAnimal
+        ? "🐾"
+        : "👤";
+
+
+    const reportId =
+      escapeHtml(report.id);
+
+
+    const searchData =
+      [
+        patientName,
+        condition,
+        report.symptoms || "",
+        report.type || ""
+      ]
+      .join(" ")
+      .toLowerCase();
+
+
+    return `
+
+      <tr
+        data-type="${type}"
+        data-status="${status.toLowerCase()}"
+        data-search="${escapeHtml(searchData)}"
+      >
+
+        <td class="date-cell">
+
+          <b>
+            ${dateText}
+          </b>
+
+          <span>
+            ${timeText}
+          </span>
+
+        </td>
+
+
+        <td>
+
+          <div class="patient-cell">
+
+            <div class="p-avatar ${typeClass}">
+              ${avatar}
+            </div>
+
+            <div>
+
+              <b>
+                ${escapeHtml(patientName)}
+              </b>
+
+              <span>
+                ID: ${reportId.substring(0, 8)}
+              </span>
+
+            </div>
+
+          </div>
+
+        </td>
+
+
+        <td>
+
+          <span class="type-chip ${typeClass}">
+            ${isAnimal ? "Animal" : "Human"}
+          </span>
+
+        </td>
+
+
+        <td class="cond-cell">
+
+          <b>
+            ${escapeHtml(condition)}
+          </b>
+
+        </td>
+
+
+        <td>
+
+          <span class="status-chip ${statusClass}">
+
+            <span class="d"></span>
+
+            ${escapeHtml(status)}
+
+          </span>
+
+        </td>
+
+
+        <td>
+
+          <div class="action-btns">
+
+            <button
+              class="a-btn view"
+              title="View"
+              data-id="${reportId}"
+            >
+              👁️
+            </button>
+
+            <button
+              class="a-btn download"
+              title="Download"
+              data-id="${reportId}"
+            >
+              ⬇️
+            </button>
+
+            <button
+              class="a-btn delete"
+              title="Delete"
+              data-id="${reportId}"
+            >
+              🗑️
+            </button>
+
+          </div>
+
+        </td>
+
+      </tr>
+
+    `;
+
+  }
+
+
+  // =========================================================
+  // EXTRACT CONDITION FROM AI RESULT
+  // =========================================================
+
+  function extractCondition(result) {
+
+    if (!result) {
+      return "AI Analysis";
+    }
+
+
+    const text =
+      String(result);
+
+
+    const match =
+      text.match(
+        /(?:Possible Condition|Condition)\s*[:\-]?\s*([^\n]+)/i
+      );
+
+
+    if (match && match[1]) {
+
+      return match[1]
+        .replace(/\*\*/g, "")
+        .trim();
+
+    }
+
+
+    // Fallback: first meaningful line
+    const lines =
+      text
+        .split("\n")
+        .map(line =>
+          line
+            .replace(/\*/g, "")
+            .trim()
+        )
+        .filter(Boolean);
+
+
+    return lines[0] || "AI Analysis";
+
+  }
+
+
+  // =========================================================
+  // FILTER
+  // =========================================================
+
+  function applyFilters() {
+
+    const query =
+      searchInput.value
+        .trim()
+        .toLowerCase();
+
+
+    const selectedType =
+      typeFilter.value;
+
+
+    const selectedStatus =
+      statusFilter.value;
+
+
+    const filtered =
+      allReports.filter(report => {
+
+        const type =
+          String(
+            report.type || "human"
+          ).toLowerCase();
+
+
+        const status =
+          String(
+            report.status || "completed"
+          ).toLowerCase();
+
+
+        const patient =
+          report.consultationData?.Name ||
+          report.consultationData?.name ||
+          report.breed ||
+          report.animalType ||
+          "";
+
+
+        const condition =
+          extractCondition(
+            report.aiResult
+          );
+
+
+        const searchText =
+          (
+            patient +
+            " " +
+            condition +
+            " " +
+            (report.symptoms || "")
+          )
+          .toLowerCase();
+
+
+        const matchesSearch =
+          !query ||
+          searchText.includes(query);
+
+
+        const matchesType =
+          selectedType === "all" ||
+          type === selectedType;
+
+
+        const matchesStatus =
+          selectedStatus === "all" ||
+          status === selectedStatus;
+
+
+        return (
+          matchesSearch &&
+          matchesType &&
+          matchesStatus
+        );
+
+      });
+
+
+    renderReports(
+      filtered
+    );
+
+  }
+
+
+  searchInput.addEventListener(
+    "input",
+    applyFilters
+  );
+
+
+  typeFilter.addEventListener(
+    "change",
+    applyFilters
+  );
+
+
+  statusFilter.addEventListener(
+    "change",
+    applyFilters
+  );
+
+
+  // =========================================================
+  // RESET
+  // =========================================================
+
+  resetBtn.addEventListener(
+    "click",
+    () => {
+
+      searchInput.value = "";
+
+      typeFilter.value = "all";
+
+      statusFilter.value = "all";
+
+      renderReports(
+        allReports
+      );
+
+    }
+  );
+
+
+  // =========================================================
+  // ACTION BUTTONS
+  // =========================================================
+
+  tableBody.addEventListener(
+    "click",
+    (event) => {
+
+      const button =
+        event.target.closest(
+          ".a-btn"
+        );
+
+
+      if (!button) {
+        return;
+      }
+
+
+      const reportId =
+        button.dataset.id;
+
+
+      if (
+        button.classList.contains(
+          "view"
+        )
+      ) {
+
+        viewReport(
+          reportId
+        );
+
+      }
+
+
+      else if (
+        button.classList.contains(
+          "download"
+        )
+      ) {
+
+        downloadReport(
+          reportId
+        );
+
+      }
+
+
+      else if (
+        button.classList.contains(
+          "delete"
+        )
+      ) {
+
+        deleteReport(
+          reportId
+        );
+
+      }
+
+    }
+  );
+
+
+  // =========================================================
+  // TEMPORARY VIEW
+  // =========================================================
+
+  function viewReport(reportId) {
+
+    const report =
+      allReports.find(
+        item =>
+          item.id === reportId
+      );
+
+
+    if (!report) {
+      return;
+    }
+
+
+    sessionStorage.setItem(
+      "mediscan_view_report",
+      JSON.stringify(report)
+    );
+
+
+    alert(
+      "Report loaded. We will connect this button to the full AI Results page next."
+    );
+
+  }
+
+
+  // =========================================================
+  // TEMPORARY DOWNLOAD
+  // =========================================================
+
+  function downloadReport(reportId) {
+
+    const report =
+      allReports.find(
+        item =>
+          item.id === reportId
+      );
+
+
+    if (!report) {
+      return;
+    }
+
+
+    const text = `
+
+MediScan AI Consultation Report
+
+Type:
+${report.type || "Unknown"}
+
+Email:
+${report.email || ""}
+
+Status:
+${report.status || "Completed"}
+
+Symptoms:
+${report.symptoms || "Not provided"}
+
+AI Analysis:
+${report.aiResult || "No result"}
+
+    `.trim();
+
+
+    const blob =
+      new Blob(
+        [text],
+        {
+          type:
+            "text/plain"
+        }
+      );
+
+
+    const url =
+      URL.createObjectURL(
+        blob
+      );
+
+
+    const a =
+      document.createElement(
+        "a"
+      );
+
+
+    a.href = url;
+
+    a.download =
+      `mediscan-report-${reportId}.txt`;
+
+
+    a.click();
+
+
+    URL.revokeObjectURL(
+      url
+    );
+
+  }
+
+
+  // =========================================================
+  // TEMPORARY DELETE
+  // =========================================================
+
+  async function deleteReport(reportId) {
+
+    const confirmed =
+      confirm(
+        "Are you sure you want to delete this consultation?"
+      );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+
+    alert(
+      "The report was selected for deletion. We will connect the Firestore delete operation next."
+    );
+
+  }
+
+
+  // =========================================================
+  // RESULTS NOTE
+  // =========================================================
+
+  function updateResultsNote(count) {
+
+    const note =
+      document.querySelector(
+        ".results-note"
+      );
+
+
+    if (note) {
+
+      note.textContent =
+        `Showing ${count} result${count === 1 ? "" : "s"}`;
+
+    }
+
+  }
+
+
+  // =========================================================
+  // HTML ESCAPE
+  // =========================================================
+
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  }
+
 </script>
 
 <script src="shared.js"></script>
