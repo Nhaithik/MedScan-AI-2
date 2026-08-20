@@ -219,9 +219,49 @@ function togglePw(){
   const pw = document.getElementById('password');
   pw.type = pw.type === 'password' ? 'text' : 'password';
 }
-document.getElementById('loginForm').addEventListener('submit', function(e){
+</script>
+
+<script type="module">
+import {
+  auth,
+  signInWithEmailAndPassword
+} from "./firebase.js";
+
+const loginForm = document.getElementById("loginForm");
+
+loginForm.addEventListener("submit", async function(e) {
   e.preventDefault();
-  window.location.href = 'dashboard.html';
+
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  const button = loginForm.querySelector(".btn-login");
+
+  try {
+    button.disabled = true;
+    button.textContent = "Logging in...";
+
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    console.log("Logged in:", userCredential.user.email);
+
+    window.location.href = "dashboard.html";
+
+  } catch (error) {
+    console.error("Login error:", error);
+
+    alert(
+      "Login failed.\n\n" +
+      "Please check your email and password."
+    );
+
+    button.disabled = false;
+    button.innerHTML = "→ Login";
+  }
 });
 </script>
 

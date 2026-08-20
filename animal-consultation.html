@@ -327,7 +327,15 @@
   </div>
 </div>
 
-<script>
+<script type="module"></script>
+
+import {
+  auth,
+  db,
+  addDoc,
+  collection,
+  serverTimestamp
+} from "./firebase.js";
 
   // ==========================================
   // MEDISCAN AI - ANIMAL CONSULTATION
@@ -335,7 +343,7 @@
 
   const API_URL = "https://medscan-ai-2-eg67.onrender.com/analyze";
 
-
+  
   // ==========================================
   // CHARACTER COUNTERS
   // ==========================================
@@ -763,6 +771,81 @@
           );
 
         }
+        // ==========================================
+// SAVE ANIMAL REPORT TO FIRESTORE
+// ==========================================
+
+const user = auth.currentUser;
+
+if (!user) {
+  throw new Error(
+    "You must be logged in to save this consultation."
+  );
+}
+
+
+// Save the animal report
+const reportRef = await addDoc(
+  collection(
+    db,
+    "users",
+    user.uid,
+    "consultations"
+  ),
+  {
+    userId:
+      user.uid,
+
+    email:
+      user.email || "",
+
+    type:
+      "Animal",
+
+    status:
+      "Completed",
+
+    createdAt:
+      serverTimestamp(),
+
+    animalType:
+      selectedAnimal,
+
+    breed:
+      breed,
+
+    age:
+      age,
+
+    ageUnit:
+      age_unit,
+
+    symptoms:
+      symptoms.value.trim(),
+
+    behaviour:
+      behaviour.value.trim(),
+
+    aiResult:
+      data.result,
+
+    downloaded:
+      false
+  }
+);
+
+
+console.log(
+  "Animal report saved:",
+  reportRef.id
+);
+
+
+// Remember the report ID
+sessionStorage.setItem(
+  "mediscan_current_report_id",
+  reportRef.id
+);
 
 
         // --------------------------------------

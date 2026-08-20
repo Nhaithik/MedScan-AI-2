@@ -312,13 +312,16 @@
 
 <script type="module">
 
-  import {
-    auth,
-    db,
-    getDocs,
-    collection,
-    onAuthStateChanged
-  } from "./firebase.js";
+ import {
+  auth,
+  db,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  doc,
+  collection,
+  onAuthStateChanged
+} from "./firebase.js";
 
 
   // =========================================================
@@ -522,6 +525,40 @@
     );
 
   }
+
+  const selectedReportId =
+  sessionStorage.getItem(
+    "mediscan_selected_report_id"
+  );
+
+
+if (selectedReportId) {
+
+  const selectedReport =
+    allReports.find(
+      report =>
+        report.id === selectedReportId
+    );
+
+
+  if (selectedReport) {
+
+    setTimeout(() => {
+
+      viewReport(
+        selectedReportId
+      );
+
+    }, 150);
+
+  }
+
+
+  sessionStorage.removeItem(
+    "mediscan_selected_report_id"
+  );
+
+}
 
 
   // =========================================================
@@ -999,138 +1036,779 @@
     }
   );
 
+function viewReport(reportId) {
 
-  // =========================================================
-  // TEMPORARY VIEW
-  // =========================================================
-
-  function viewReport(reportId) {
-
-    const report =
-      allReports.find(
-        item =>
-          item.id === reportId
-      );
-
-
-    if (!report) {
-      return;
-    }
-
-
-    sessionStorage.setItem(
-      "mediscan_view_report",
-      JSON.stringify(report)
+  const report =
+    allReports.find(
+      report => report.id === reportId
     );
 
-
-    alert(
-      "Report loaded. We will connect this button to the full AI Results page next."
-    );
-
+  if (!report) {
+    alert("Report could not be found.");
+    return;
   }
 
+  showReportModal(report);
 
-  // =========================================================
-  // TEMPORARY DOWNLOAD
-  // =========================================================
+}
 
-  function downloadReport(reportId) {
+// =========================================================
+// SHOW REPORT MODAL
+// =========================================================
 
-    const report =
-      allReports.find(
-        item =>
-          item.id === reportId
+function showReportModal(report) {
+
+  let modal =
+    document.getElementById(
+      "reportViewModal"
+    );
+
+
+  if (!modal) {
+
+    modal =
+      document.createElement("div");
+
+    modal.id =
+      "reportViewModal";
+
+    modal.innerHTML = `
+
+      <div
+        style="
+          position:fixed;
+          inset:0;
+          background:rgba(18,33,62,.55);
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          padding:20px;
+          z-index:9999;
+        "
+        id="reportModalOverlay"
+      >
+
+        <div
+          style="
+            background:#fff;
+            width:min(850px,95vw);
+            max-height:90vh;
+            overflow:auto;
+            border-radius:18px;
+            padding:28px;
+            box-shadow:0 20px 60px rgba(0,0,0,.25);
+          "
+        >
+
+          <div
+            style="
+              display:flex;
+              justify-content:space-between;
+              align-items:center;
+              gap:15px;
+              margin-bottom:20px;
+            "
+          >
+
+            <div>
+              <div
+                style="
+                  font-size:12px;
+                  color:#5b6b8c;
+                  margin-bottom:5px;
+                "
+              >
+                MediScan AI Report
+              </div>
+
+              <h2
+                id="reportModalTitle"
+                style="margin:0;"
+              >
+                Consultation Report
+              </h2>
+            </div>
+
+            <button
+              id="closeReportModal"
+              style="
+                border:none;
+                background:#f1f3f8;
+                width:36px;
+                height:36px;
+                border-radius:50%;
+                cursor:pointer;
+                font-size:18px;
+              "
+            >
+              ✕
+            </button>
+
+          </div>
+
+
+          <div
+            id="reportModalContent"
+          ></div>
+
+
+          <div
+            style="
+              display:flex;
+              justify-content:flex-end;
+              gap:10px;
+              margin-top:22px;
+            "
+          >
+
+            <button
+              id="modalDownloadBtn"
+              style="
+                border:1px solid #3cb897;
+                color:#278866;
+                background:#fff;
+                padding:11px 16px;
+                border-radius:9px;
+                font-weight:700;
+                cursor:pointer;
+              "
+            >
+              ⬇️ Download
+            </button>
+
+            <button
+              id="modalDeleteBtn"
+              style="
+                border:1px solid #e15b5b;
+                color:#c94b4b;
+                background:#fff;
+                padding:11px 16px;
+                border-radius:9px;
+                font-weight:700;
+                cursor:pointer;
+              "
+            >
+              🗑️ Delete
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+
+    document
+      .getElementById(
+        "closeReportModal"
+      )
+      .addEventListener(
+        "click",
+        closeReportModal
       );
 
 
-    if (!report) {
-      return;
-    }
+    document
+      .getElementById(
+        "reportModalOverlay"
+      )
+      .addEventListener(
+        "click",
+        (event) => {
 
+          if (
+            event.target.id ===
+            "reportModalOverlay"
+          ) {
+            closeReportModal();
+          }
 
-    const text = `
-
-MediScan AI Consultation Report
-
-Type:
-${report.type || "Unknown"}
-
-Email:
-${report.email || ""}
-
-Status:
-${report.status || "Completed"}
-
-Symptoms:
-${report.symptoms || "Not provided"}
-
-AI Analysis:
-${report.aiResult || "No result"}
-
-    `.trim();
-
-
-    const blob =
-      new Blob(
-        [text],
-        {
-          type:
-            "text/plain"
         }
       );
 
 
-    const url =
-      URL.createObjectURL(
-        blob
+    document
+      .getElementById(
+        "modalDownloadBtn"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+          const id =
+            modal.dataset.reportId;
+
+          downloadReport(id);
+
+        }
       );
 
 
-    const a =
-      document.createElement(
-        "a"
+    document
+      .getElementById(
+        "modalDeleteBtn"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+          const id =
+            modal.dataset.reportId;
+
+          deleteReport(id);
+
+        }
       );
-
-
-    a.href = url;
-
-    a.download =
-      `mediscan-report-${reportId}.txt`;
-
-
-    a.click();
-
-
-    URL.revokeObjectURL(
-      url
-    );
 
   }
 
 
-  // =========================================================
-  // TEMPORARY DELETE
-  // =========================================================
+  modal.dataset.reportId =
+    report.id;
 
-  async function deleteReport(reportId) {
 
-    const confirmed =
-      confirm(
-        "Are you sure you want to delete this consultation?"
+  const date =
+    report.createdAt?.toDate
+      ? report.createdAt.toDate()
+      : new Date();
+
+
+  const type =
+    report.type || "Human";
+
+
+  const isAnimal =
+    type.toLowerCase() === "animal";
+
+
+  const patientName =
+    isAnimal
+      ? (
+          report.animalType ||
+          report.breed ||
+          "Animal"
+        )
+      : (
+          report.consultationData?.Name ||
+          report.consultationData?.name ||
+          "User"
+        );
+
+
+  document.getElementById(
+    "reportModalTitle"
+  ).textContent =
+    `${type} Consultation`;
+
+
+  document.getElementById(
+    "reportModalContent"
+  ).innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        grid-template-columns:repeat(2,1fr);
+        gap:12px;
+        margin-bottom:18px;
+      "
+    >
+
+      <div
+        style="
+          background:#f6f9fd;
+          padding:14px;
+          border-radius:10px;
+        "
+      >
+        <div style="font-size:11px;color:#5b6b8c;">
+          Patient
+        </div>
+
+        <strong>
+          ${escapeHtml(patientName)}
+        </strong>
+      </div>
+
+
+      <div
+        style="
+          background:#f6f9fd;
+          padding:14px;
+          border-radius:10px;
+        "
+      >
+        <div style="font-size:11px;color:#5b6b8c;">
+          Date
+        </div>
+
+        <strong>
+          ${escapeHtml(
+            date.toLocaleString()
+          )}
+        </strong>
+      </div>
+
+
+      <div
+        style="
+          background:#f6f9fd;
+          padding:14px;
+          border-radius:10px;
+        "
+      >
+        <div style="font-size:11px;color:#5b6b8c;">
+          Type
+        </div>
+
+        <strong>
+          ${escapeHtml(type)}
+        </strong>
+      </div>
+
+
+      <div
+        style="
+          background:#f6f9fd;
+          padding:14px;
+          border-radius:10px;
+        "
+      >
+        <div style="font-size:11px;color:#5b6b8c;">
+          Status
+        </div>
+
+        <strong>
+          ${escapeHtml(
+            report.status || "Completed"
+          )}
+        </strong>
+      </div>
+
+    </div>
+
+
+    <div style="margin-bottom:18px;">
+
+      <h3
+        style="
+          font-size:14px;
+          margin-bottom:8px;
+        "
+      >
+        Symptoms
+      </h3>
+
+      <div
+        style="
+          background:#f6f9fd;
+          padding:14px;
+          border-radius:10px;
+          white-space:pre-wrap;
+        "
+      >
+        ${escapeHtml(
+          report.symptoms ||
+          "Not provided"
+        )}
+      </div>
+
+    </div>
+
+
+    <div>
+
+      <h3
+        style="
+          font-size:14px;
+          margin-bottom:8px;
+        "
+      >
+        AI Analysis
+      </h3>
+
+      <div
+        style="
+          background:#f6f9fd;
+          padding:16px;
+          border-radius:10px;
+          white-space:pre-wrap;
+          line-height:1.6;
+          max-height:420px;
+          overflow:auto;
+        "
+      >
+        ${escapeHtml(
+          report.aiResult ||
+          "No AI result available."
+        )}
+      </div>
+
+    </div>
+  `;
+
+
+  modal.style.display =
+    "block";
+}
+
+
+function closeReportModal() {
+
+  const modal =
+    document.getElementById(
+      "reportViewModal"
+    );
+
+  if (modal) {
+    modal.style.display =
+      "none";
+  }
+
+}
+
+
+// =========================================================
+// DOWNLOAD REPORT
+// =========================================================
+
+async function downloadReport(reportId) {
+
+  const report =
+    allReports.find(
+      item => item.id === reportId
+    );
+
+
+  if (!report) {
+    alert("Report could not be found.");
+    return;
+  }
+
+
+  const date =
+    report.createdAt?.toDate
+      ? report.createdAt.toDate()
+      : new Date();
+
+
+  const type =
+    report.type || "Human";
+
+
+  const patientName =
+    type.toLowerCase() === "animal"
+      ? (
+          report.animalType ||
+          report.breed ||
+          "Animal"
+        )
+      : (
+          report.consultationData?.Name ||
+          report.consultationData?.name ||
+          "User"
+        );
+
+
+  const printWindow =
+    window.open(
+      "",
+      "_blank",
+      "width=900,height=700"
+    );
+
+
+  if (!printWindow) {
+
+    alert(
+      "Please allow pop-ups to download the report."
+    );
+
+    return;
+
+  }
+
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+
+      <title>
+        MediScan AI Report
+      </title>
+
+      <style>
+
+        body {
+          font-family: Arial, sans-serif;
+          color: #12213e;
+          padding: 40px;
+          line-height: 1.6;
+        }
+
+        h1 {
+          margin-bottom: 4px;
+        }
+
+        .sub {
+          color: #5b6b8c;
+          margin-bottom: 25px;
+        }
+
+        .box {
+          border: 1px solid #e6ebf5;
+          border-radius: 10px;
+          padding: 15px;
+          margin-bottom: 15px;
+        }
+
+        .label {
+          font-size: 12px;
+          color: #5b6b8c;
+          margin-bottom: 5px;
+        }
+
+        .ai {
+          white-space: pre-wrap;
+        }
+
+        @media print {
+          body {
+            padding: 20px;
+          }
+        }
+
+      </style>
+
+    </head>
+
+    <body>
+
+      <h1>MediScan AI</h1>
+
+      <div class="sub">
+        ${escapeHtml(type)} Consultation Report
+      </div>
+
+
+      <div class="box">
+        <div class="label">Patient</div>
+        <strong>
+          ${escapeHtml(patientName)}
+        </strong>
+      </div>
+
+
+      <div class="box">
+        <div class="label">Email</div>
+        <strong>
+          ${escapeHtml(report.email || "")}
+        </strong>
+      </div>
+
+
+      <div class="box">
+        <div class="label">Date</div>
+        <strong>
+          ${escapeHtml(date.toLocaleString())}
+        </strong>
+      </div>
+
+
+      <div class="box">
+        <div class="label">Symptoms</div>
+
+        <div>
+          ${escapeHtml(
+            report.symptoms ||
+            "Not provided"
+          )}
+        </div>
+      </div>
+
+
+      <div class="box">
+
+        <div class="label">
+          AI Analysis
+        </div>
+
+        <div class="ai">
+          ${escapeHtml(
+            report.aiResult ||
+            "No AI analysis available."
+          )}
+        </div>
+
+      </div>
+
+
+      <div style="
+        margin-top:30px;
+        font-size:12px;
+        color:#777;
+      ">
+        This report is for informational purposes only
+        and is not a medical diagnosis.
+      </div>
+
+    </body>
+    </html>
+  `);
+
+
+  printWindow.document.close();
+
+
+  await new Promise(
+    resolve =>
+      setTimeout(
+        resolve,
+        300
+      )
+  );
+
+
+  printWindow.focus();
+
+  printWindow.print();
+
+
+  // Mark as downloaded
+  try {
+
+    const user =
+      auth.currentUser;
+
+
+    if (user) {
+
+      await updateDoc(
+
+        doc(
+          db,
+          "users",
+          user.uid,
+          "consultations",
+          reportId
+        ),
+
+        {
+          downloaded: true,
+          downloadedAt: new Date()
+        }
+
       );
 
 
-    if (!confirmed) {
-      return;
+      report.downloaded =
+        true;
+
     }
+
+  } catch (error) {
+
+    console.error(
+      "Could not record download:",
+      error
+    );
+
+  }
+
+}
+
+
+// =========================================================
+// DELETE REPORT
+// =========================================================
+
+async function deleteReport(reportId) {
+
+  const confirmed =
+    confirm(
+      "Delete this consultation permanently?"
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const user =
+    auth.currentUser;
+
+
+  if (!user) {
+
+    alert(
+      "Please log in again."
+    );
+
+    return;
+
+  }
+
+
+  try {
+
+    await deleteDoc(
+
+      doc(
+        db,
+        "users",
+        user.uid,
+        "consultations",
+        reportId
+      )
+
+    );
+
+
+    allReports =
+      allReports.filter(
+        report =>
+          report.id !== reportId
+      );
+
+
+    totalConsultations.textContent =
+      allReports.length;
+
+
+    renderReports(
+      allReports
+    );
+
+
+    closeReportModal();
 
 
     alert(
-      "The report was selected for deletion. We will connect the Firestore delete operation next."
+      "Consultation deleted successfully."
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Delete error:",
+      error
+    );
+
+
+    alert(
+      "Unable to delete the consultation.\n\n" +
+      error.message
     );
 
   }
+
+}
 
 
   // =========================================================

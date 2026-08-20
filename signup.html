@@ -229,16 +229,109 @@ function togglePw(id){
   const pw = document.getElementById(id);
   pw.type = pw.type === 'password' ? 'text' : 'password';
 }
-document.getElementById('signupForm').addEventListener('submit', function(e){
+<script>
+function togglePw(id){
+  const pw = document.getElementById(id);
+  pw.type = pw.type === 'password' ? 'text' : 'password';
+}
+</script>
+
+<script type="module">
+import {
+  auth,
+  db,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  doc,
+  setDoc,
+  serverTimestamp
+} from "./firebase.js";
+
+const signupForm = document.getElementById("signupForm");
+
+signupForm.addEventListener("submit", async function(e) {
   e.preventDefault();
-  const pw = document.getElementById('password').value;
-  const cpw = document.getElementById('confirmPassword').value;
-  if(pw !== cpw){
-    alert('Passwords do not match.');
+
+  const fullName = document.getElementById("fullname").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const password = document.getElementById("password").value;
+  const confirmPassword =
+    document.getElementById("confirmPassword").value;
+
+  // Check passwords
+  if (password !== confirmPassword) {
+    alert("Passwords do not match.");
     return;
   }
-  alert('Account created! Redirecting to your dashboard...');
-  window.location.href = 'dashboard.html';
+
+  const button = signupForm.querySelector(".btn-create");
+
+  try {
+    button.disabled = true;
+    button.textContent = "Creating Account...";
+
+    // Create Firebase account
+    const userCredential =
+      await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+    const user = userCredential.user;
+    
+    await updateProfile(user, {
+  displayName: fullName
+});
+
+await setDoc(
+  doc(db, "users", user.uid),
+  {
+    uid: user.uid,
+    fullName: fullName,
+    email: user.email,
+    phone: phone,
+    createdAt: serverTimestamp()
+  }
+);
+
+    console.log("ACCOUNT CREATED");
+    console.log("Name:", fullName);
+    console.log("Email:", user.email);
+    console.log("UID:", user.uid);
+
+    // Save basic profile information locally for now
+    localStorage.setItem("userUID", user.uid);
+    localStorage.setItem("userEmail", user.email);
+    localStorage.setItem("userName", fullName);
+    localStorage.setItem("userPhone", phone);
+
+    alert("Account created successfully!");
+
+    window.location.href = "dashboard.html";
+
+  } catch (error) {
+
+    console.error("Firebase signup error:", error);
+
+    let message = "Unable to create account.";
+
+    if (error.code === "auth/email-already-in-use") {
+      message = "This email is already registered.";
+    }
+    else if (error.code === "auth/invalid-email") {
+      message = "Please enter a valid email address.";
+    }
+    else if (error.code === "auth/weak-password") {
+      message = "Password should be at least 6 characters.";
+    }
+
+    alert(message);
+
+    button.disabled = false;
+    button.innerHTML = "👤+ Create Account";
+  }
 });
 </script>
 

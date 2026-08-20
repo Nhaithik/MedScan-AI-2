@@ -325,25 +325,25 @@
           <div class="stat-grid">
             <div class="stat-box blue">
               <div class="stat-ic">📋</div>
-              <div class="stat-num">12</div>
+              <div class="stat-num" id="totalConsultations">0</div>
               <div class="stat-label">Total Consultations</div>
               <div class="stat-delta">↑ 20% from last month</div>
             </div>
             <div class="stat-box green">
               <div class="stat-ic">🧑</div>
-              <div class="stat-num">7</div>
+              <div class="stat-num" id="humanConsultations">0</div>
               <div class="stat-label">Human Consultations</div>
               <div class="stat-delta">↑ 18% from last month</div>
             </div>
             <div class="stat-box purple">
               <div class="stat-ic">🐾</div>
-              <div class="stat-num">5</div>
+              <div class="stat-num" id="animalConsultations">0</div>
               <div class="stat-label">Animal Consultations</div>
               <div class="stat-delta">↑ 25% from last month</div>
             </div>
             <div class="stat-box orange">
               <div class="stat-ic">📄</div>
-              <div class="stat-num">8</div>
+              <div class="stat-num" id="reportsDownloaded">0</div>
               <div class="stat-label">Reports Downloaded</div>
               <div class="stat-delta">↑ 30% from last month</div>
             </div>
@@ -373,29 +373,8 @@
             <thead>
               <tr><th>Date</th><th>Type</th><th>Name</th><th>Status</th><th>Action</th></tr>
             </thead>
-            <tbody>
-              <tr>
-                <td>May 20, 2025</td>
-                <td>Human Consultation</td>
-                <td>Skin Rash Analysis</td>
-                <td><span class="status-chip">Completed</span></td>
-                <td><button class="eye-btn">👁️</button></td>
-              </tr>
-              <tr>
-                <td>May 18, 2025</td>
-                <td>Animal Consultation</td>
-                <td>Paw Injury Check</td>
-                <td><span class="status-chip">Completed</span></td>
-                <td><button class="eye-btn">👁️</button></td>
-              </tr>
-              <tr>
-                <td>May 15, 2025</td>
-                <td>Human Consultation</td>
-                <td>Fever Symptoms</td>
-                <td><span class="status-chip">Completed</span></td>
-                <td><button class="eye-btn">👁️</button></td>
-              </tr>
-            </tbody>
+         <tbody id="recentActivityBody">
+</tbody>
           </table>
         </div>
 
@@ -413,11 +392,461 @@
   </div>
 </div>
 
-<script>
-  const d = new Date();
-  document.getElementById('todayDate').textContent = d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('todayDay').textContent = d.toLocaleDateString('en-US',{weekday:'long'});
+<script type="module">
+
+import {
+  auth,
+  db,
+  getDocs,
+  collection,
+  onAuthStateChanged
+} from "./firebase.js";
+
+
+/* =========================================================
+   DATE
+   ========================================================= */
+
+const d = new Date();
+
+document.getElementById("todayDate").textContent =
+  d.toLocaleDateString(
+    "en-US",
+    {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    }
+  );
+
+document.getElementById("todayDay").textContent =
+  d.toLocaleDateString(
+    "en-US",
+    {
+      weekday: "long"
+    }
+  );
+
+
+/* =========================================================
+   DASHBOARD ELEMENTS
+   ========================================================= */
+
+const totalEl =
+  document.getElementById(
+    "totalConsultations"
+  );
+
+const humanEl =
+  document.getElementById(
+    "humanConsultations"
+  );
+
+const animalEl =
+  document.getElementById(
+    "animalConsultations"
+  );
+
+const downloadedEl =
+  document.getElementById(
+    "reportsDownloaded"
+  );
+
+const recentBody =
+  document.getElementById(
+    "recentActivityBody"
+  );
+
+
+/* =========================================================
+   LOAD LOGGED-IN USER'S CONSULTATIONS
+   ========================================================= */
+
+onAuthStateChanged(
+  auth,
+  async (user) => {
+
+    if (!user) {
+
+      totalEl.textContent = "0";
+      humanEl.textContent = "0";
+      animalEl.textContent = "0";
+      downloadedEl.textContent = "0";
+
+      recentBody.innerHTML = `
+        <tr>
+          <td colspan="5"
+              style="text-align:center;padding:30px;">
+            Please log in to view your dashboard.
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+
+    console.log(
+      "Dashboard user:",
+      user.email
+    );
+
+    console.log(
+      "Dashboard UID:",
+      user.uid
+    );
+
+
+    try {
+
+      /* -----------------------------------------------------
+         GET ONLY THIS USER'S REPORTS
+         ----------------------------------------------------- */
+
+      const consultationsRef =
+        collection(
+          db,
+          "users",
+          user.uid,
+          "consultations"
+        );
+
+
+      const snapshot =
+        await getDocs(
+          consultationsRef
+        );
+
+
+      const reports = [];
+
+
+      snapshot.forEach(
+        (docSnap) => {
+
+          reports.push({
+            id: docSnap.id,
+            ...docSnap.data()
+          });
+
+        }
+      );
+
+
+      /* -----------------------------------------------------
+         SORT NEWEST FIRST
+         ----------------------------------------------------- */
+
+      reports.sort(
+        (a, b) => {
+
+          const dateA =
+            a.createdAt?.toDate
+              ? a.createdAt.toDate()
+              : new Date(0);
+
+          const dateB =
+            b.createdAt?.toDate
+              ? b.createdAt.toDate()
+              : new Date(0);
+
+          return dateB - dateA;
+
+        }
+      );
+
+
+      /* -----------------------------------------------------
+         COUNTS
+         ----------------------------------------------------- */
+
+      const humanReports =
+        reports.filter(
+          report =>
+            String(
+              report.type || ""
+            ).toLowerCase() === "human"
+        );
+
+
+      const animalReports =
+        reports.filter(
+          report =>
+            String(
+              report.type || ""
+            ).toLowerCase() === "animal"
+        );
+
+
+      /*
+       * Download count
+       *
+       * For now this counts reports that have
+       * downloaded === true.
+       *
+       * We will add this field when we make
+       * the Download button fully functional.
+       */
+
+      const downloadedReports =
+        reports.filter(
+          report =>
+            report.downloaded === true
+        );
+
+
+      totalEl.textContent =
+        reports.length;
+
+      humanEl.textContent =
+        humanReports.length;
+
+      animalEl.textContent =
+        animalReports.length;
+
+      downloadedEl.textContent =
+        downloadedReports.length;
+
+
+      /* -----------------------------------------------------
+         RECENT ACTIVITY
+         ----------------------------------------------------- */
+
+      const recentReports =
+        reports.slice(0, 5);
+
+
+      if (
+        recentReports.length === 0
+      ) {
+
+        recentBody.innerHTML = `
+          <tr>
+            <td colspan="5"
+                style="text-align:center;padding:30px;color:#5b6b8c;">
+
+              📋 No consultations yet.
+
+              <br>
+
+              Your completed consultations
+              will appear here.
+
+            </td>
+          </tr>
+        `;
+
+        return;
+
+      }
+
+
+      recentBody.innerHTML =
+        recentReports
+          .map(
+            report =>
+              createRecentRow(report)
+          )
+          .join("");
+
+
+    } catch (error) {
+
+      console.error(
+        "Dashboard Firestore error:",
+        error
+      );
+
+
+      recentBody.innerHTML = `
+        <tr>
+          <td colspan="5"
+              style="text-align:center;padding:30px;color:#e15b5b;">
+
+            Unable to load your consultation data.
+
+            <br><br>
+
+            ${escapeHtml(
+              error.message
+            )}
+
+          </td>
+        </tr>
+      `;
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   CREATE RECENT ACTIVITY ROW
+   ========================================================= */
+
+function createRecentRow(
+  report
+) {
+
+  const isAnimal =
+    String(
+      report.type || ""
+    ).toLowerCase() === "animal";
+
+
+  const date =
+    report.createdAt?.toDate
+      ? report.createdAt.toDate()
+      : new Date();
+
+
+  const dateText =
+    date.toLocaleDateString(
+      "en-US",
+      {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      }
+    );
+
+
+  const typeText =
+    isAnimal
+      ? "Animal Consultation"
+      : "Human Consultation";
+
+
+  const name =
+    isAnimal
+      ? (
+          report.breed ||
+          report.animalType ||
+          "Animal Analysis"
+        )
+      : (
+          report.consultationData?.Name ||
+          report.consultationData?.name ||
+          "Human Consultation"
+        );
+
+
+  const status =
+    report.status ||
+    "Completed";
+
+
+  return `
+    <tr>
+
+      <td>
+        ${escapeHtml(dateText)}
+      </td>
+
+      <td>
+        ${escapeHtml(typeText)}
+      </td>
+
+      <td>
+        ${escapeHtml(name)}
+      </td>
+
+      <td>
+        <span class="status-chip">
+          ${escapeHtml(status)}
+        </span>
+      </td>
+
+      <td>
+
+        <button
+          class="eye-btn"
+          data-report-id="${escapeHtml(report.id)}"
+          title="View Report"
+        >
+          👁️
+        </button>
+
+      </td>
+
+    </tr>
+  `;
+
+}
+
+
+/* =========================================================
+   VIEW BUTTON
+   ========================================================= */
+
+recentBody.addEventListener(
+  "click",
+  (event) => {
+
+    const button =
+      event.target.closest(
+        ".eye-btn"
+      );
+
+
+    if (!button) {
+      return;
+    }
+
+
+    const reportId =
+      button.dataset.reportId;
+
+
+    if (!reportId) {
+      return;
+    }
+
+sessionStorage.setItem(
+  "mediscan_selected_report_id",
+  reportId
+);
+
+window.location.href =
+  "consultation-history.html";
+
+
+/* =========================================================
+   HTML ESCAPE
+   ========================================================= */
+
+function escapeHtml(value) {
+
+  return String(
+    value ?? ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+
+}
+
 </script>
+
+<script src="shared.js"></script>
 
 <script src="shared.js"></script>
 </body>
