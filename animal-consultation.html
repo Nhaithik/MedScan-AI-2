@@ -327,7 +327,7 @@
   </div>
 </div>
 
-<script type="module"></script>
+<script type="module">
 
 import {
   auth,
@@ -337,572 +337,333 @@ import {
   serverTimestamp
 } from "./firebase.js";
 
-  // ==========================================
-  // MEDISCAN AI - ANIMAL CONSULTATION
-  // ==========================================
-
-  const API_URL = "https://medscan-ai-2-eg67.onrender.com/analyze";
-
-  
-  // ==========================================
-  // CHARACTER COUNTERS
-  // ==========================================
-
-  const symptoms = document.getElementById("symptoms");
-  const symCount = document.getElementById("symCount");
-
-  symptoms.addEventListener("input", () => {
-    symCount.textContent = symptoms.value.length;
-  });
-
-
-  const behaviour = document.getElementById("behaviour");
-  const behCount = document.getElementById("behCount");
-
-  behaviour.addEventListener("input", () => {
-    behCount.textContent = behaviour.value.length;
-  });
-
-
-  // ==========================================
-  // ANIMAL DROPDOWN
-  // ==========================================
-
-  const dropdown = document.getElementById("animalDropdown");
-  const toggle = document.getElementById("dropdownToggle");
-  const label = document.getElementById("dropdownLabel");
-
-  let selectedAnimal = "";
-
-
-  toggle.addEventListener("click", () => {
-    dropdown.classList.toggle("open");
-  });
-
-
-  document.querySelectorAll(".dropdown-item").forEach(item => {
-
-    item.addEventListener("click", () => {
-
-      selectedAnimal = item.dataset.value;
-
-      label.textContent = selectedAnimal;
-
-      label.classList.remove("placeholder");
-      label.classList.add("chosen");
-
-      dropdown.classList.remove("open");
-
-    });
-
-  });
-
-
-  document.addEventListener("click", (e) => {
-
-    if (!dropdown.contains(e.target)) {
-      dropdown.classList.remove("open");
-    }
-
-  });
-
-
-  // ==========================================
-  // IMAGE UPLOAD
-  // ==========================================
-
-  const dropzone = document.getElementById("dropzone");
-  const fileInput = document.getElementById("fileInput");
-  const previewImg = document.getElementById("previewImg");
-
-
-  dropzone.addEventListener("click", () => {
-    fileInput.click();
-  });
-
-
-  dropzone.addEventListener("dragover", (e) => {
-
-    e.preventDefault();
-
-    dropzone.classList.add("dragover");
-
-  });
-
-
-  dropzone.addEventListener("dragleave", () => {
-
-    dropzone.classList.remove("dragover");
-
-  });
-
-
-  dropzone.addEventListener("drop", (e) => {
-
-    e.preventDefault();
-
-    dropzone.classList.remove("dragover");
-
-    if (e.dataTransfer.files.length) {
-
-      const file = e.dataTransfer.files[0];
-
-      fileInput.files = e.dataTransfer.files;
-
-      handleFile(file);
-
-    }
-
-  });
-
-
-  fileInput.addEventListener("change", () => {
-
-    if (fileInput.files.length) {
-
-      handleFile(fileInput.files[0]);
-
-    }
-
-  });
-
-
-  function handleFile(file) {
-
-    if (!file.type.match(/^image\/(jpeg|png)$/)) {
-
-      alert("Please upload a JPG, JPEG, or PNG image.");
-
-      fileInput.value = "";
-
-      return;
-
-    }
-
-
-    if (file.size > 10 * 1024 * 1024) {
-
-      alert("Image must be smaller than 10 MB.");
-
-      fileInput.value = "";
-
-      return;
-
-    }
-
-
-    const reader = new FileReader();
-
-
-    reader.onload = (e) => {
-
-      previewImg.src = e.target.result;
-
-      previewImg.style.display = "block";
-
-    };
-
-
-    reader.readAsDataURL(file);
-
-  }
-
-
-  // ==========================================
-  // CLEAR FORM
-  // ==========================================
-
-  document.getElementById("clearBtn").addEventListener("click", () => {
-
-    document.getElementById("consultForm").reset();
-
-    selectedAnimal = "";
-
-    symCount.textContent = "0";
-
-    behCount.textContent = "0";
-
-    label.textContent = "Select animal type";
-
-    label.classList.add("placeholder");
-
-    label.classList.remove("chosen");
-
-    previewImg.style.display = "none";
-
-    previewImg.src = "";
-
-    fileInput.value = "";
-
-    sessionStorage.removeItem(
-      "mediscan_animal_ai_result"
-    );
-
-    sessionStorage.removeItem(
-      "mediscan_animal_uploaded_image"
-    );
-
-  });
-
-
-  // ==========================================
-  // SEND ANIMAL DATA TO FLASK + GEMINI
-  // ==========================================
-
-  document
-    .getElementById("consultForm")
-    .addEventListener("submit", async (e) => {
-
-      e.preventDefault();
-
-
-      // ----------------------------------------
-      // Get form values
-      // ----------------------------------------
-
-      const breedInput =
-        document.querySelector('.field input[type="text"]');
-
-      const ageInput =
-        document.querySelector('.age-row input[type="number"]');
-
-      const ageUnit =
-        document.querySelector(".unit-select");
-
-
-      const breed =
-        breedInput
-          ? breedInput.value.trim()
-          : "";
-
-
-      const age =
-        ageInput
-          ? ageInput.value.trim()
-          : "";
-
-
-      const age_unit =
-        ageUnit
-          ? ageUnit.value
-          : "Years";
-
-
-      const image =
-        fileInput.files[0];
-
-
-      // ----------------------------------------
-      // Validation
-      // ----------------------------------------
-
-      if (!selectedAnimal) {
-
-        alert("Please select the animal type.");
-
-        return;
-
-      }
-
-
-      if (!symptoms.value.trim()) {
-
-        alert("Please describe the animal's symptoms.");
-
-        symptoms.focus();
-
-        return;
-
-      }
-
-
-      if (!image) {
-
-        alert("Please upload an image for AI analysis.");
-
-        return;
-
-      }
-
-
-      // ----------------------------------------
-      // Create FormData
-      // ----------------------------------------
-
-      const formData = new FormData();
-
-
-      formData.append(
-        "type",
-        "animal"
-      );
-
-
-      formData.append(
-        "animal_type",
-        selectedAnimal
-      );
-
-
-      formData.append(
-        "breed",
-        breed
-      );
-
-
-      formData.append(
-        "age",
-        age
-      );
-
-
-      formData.append(
-        "age_unit",
-        age_unit
-      );
-
-
-      formData.append(
-        "symptoms",
-        symptoms.value.trim()
-      );
-
-
-      formData.append(
-        "behaviour",
-        behaviour.value.trim()
-      );
-
-
-      formData.append(
-        "image",
-        image
-      );
-
-
-      // ----------------------------------------
-      // Save animal information
-      // ----------------------------------------
-
-      sessionStorage.setItem(
-        "mediscan_animal_consultation",
-        JSON.stringify({
-
-          animal_type: selectedAnimal,
-
-          breed: breed,
-
-          age: age,
-
-          age_unit: age_unit,
-
-          symptoms: symptoms.value.trim(),
-
-          behaviour: behaviour.value.trim()
-
-        })
-      );
-
-
-      sessionStorage.setItem(
-        "mediscan_animal_symptoms",
-        symptoms.value.trim()
-      );
-
-
-      sessionStorage.setItem(
-        "mediscan_animal_behaviour",
-        behaviour.value.trim()
-      );
-
-
-      // ----------------------------------------
-      // Loading button
-      // ----------------------------------------
-
-      const analyzeBtn =
-        document.querySelector(".btn-analyze");
-
-
-      const originalText =
-        analyzeBtn.innerHTML;
-
-
-      analyzeBtn.disabled = true;
-
-      analyzeBtn.innerHTML =
-        "⏳ Analyzing with AI...";
-
-
-      // ----------------------------------------
-      // Send to Flask
-      // ----------------------------------------
-
-      try {
-
-        const response =
-          await fetch(
-            API_URL,
-            {
-              method: "POST",
-              body: formData
-            }
-          );
-
-
-        if (!response.ok) {
-
-          throw new Error(
-            `Server returned ${response.status}`
-          );
-
-        }
-
-
-        const data =
-          await response.json();
-
-
-        if (!data.success) {
-
-          throw new Error(
-            data.error ||
-            "Animal AI analysis failed."
-          );
-
-        }
-        // ==========================================
-// SAVE ANIMAL REPORT TO FIRESTORE
+// ==========================================
+// MEDISCAN AI - ANIMAL CONSULTATION
 // ==========================================
 
-const user = auth.currentUser;
+const API_URL = "https://medscan-ai-2-eg67.onrender.com/analyze";
 
-if (!user) {
-  throw new Error(
-    "You must be logged in to save this consultation."
-  );
+// ==========================================
+// CHARACTER COUNTERS
+// ==========================================
+
+const symptoms = document.getElementById("symptoms");
+const symCount = document.getElementById("symCount");
+
+symptoms.addEventListener("input", () => {
+  symCount.textContent = symptoms.value.length;
+});
+
+const behaviour = document.getElementById("behaviour");
+const behCount = document.getElementById("behCount");
+
+behaviour.addEventListener("input", () => {
+  behCount.textContent = behaviour.value.length;
+});
+
+// ==========================================
+// ANIMAL DROPDOWN
+// ==========================================
+
+const dropdown = document.getElementById("animalDropdown");
+const toggle = document.getElementById("dropdownToggle");
+const label = document.getElementById("dropdownLabel");
+
+let selectedAnimal = "";
+
+toggle.addEventListener("click", () => {
+  dropdown.classList.toggle("open");
+});
+
+document.querySelectorAll(".dropdown-item").forEach(item => {
+  item.addEventListener("click", () => {
+    selectedAnimal = item.dataset.value;
+    label.textContent = selectedAnimal;
+    label.classList.remove("placeholder");
+    label.classList.add("chosen");
+    dropdown.classList.remove("open");
+  });
+});
+
+document.addEventListener("click", (e) => {
+  if (!dropdown.contains(e.target)) {
+    dropdown.classList.remove("open");
+  }
+});
+
+// ==========================================
+// IMAGE UPLOAD
+// ==========================================
+
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("fileInput");
+const previewImg = document.getElementById("previewImg");
+
+dropzone.addEventListener("click", () => {
+  fileInput.click();
+});
+
+dropzone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dropzone.classList.add("dragover");
+});
+
+dropzone.addEventListener("dragleave", () => {
+  dropzone.classList.remove("dragover");
+});
+
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropzone.classList.remove("dragover");
+
+  if (e.dataTransfer.files.length) {
+    try {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(e.dataTransfer.files[0]);
+      fileInput.files = dataTransfer.files;
+    } catch (_) {
+      // Some browsers don't allow programmatic assignment to file inputs.
+      // handleFile still previews the dropped file and submit will require a chosen file.
+    }
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+
+fileInput.addEventListener("change", () => {
+  if (fileInput.files.length) {
+    handleFile(fileInput.files[0]);
+  }
+});
+
+function handleFile(file) {
+  if (!file.type.match(/^image\/(jpeg|png)$/)) {
+    alert("Please upload a JPG, JPEG, or PNG image.");
+    fileInput.value = "";
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    alert("Image must be smaller than 10 MB.");
+    fileInput.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    previewImg.src = e.target.result;
+    previewImg.style.display = "block";
+    sessionStorage.setItem("mediscan_animal_uploaded_image", e.target.result);
+  };
+  reader.readAsDataURL(file);
 }
 
+// ==========================================
+// CLEAR FORM
+// ==========================================
 
-// Save the animal report
-const reportRef = await addDoc(
-  collection(
-    db,
-    "users",
-    user.uid,
-    "consultations"
-  ),
-  {
-    userId:
-      user.uid,
+document.getElementById("clearBtn").addEventListener("click", () => {
+  document.getElementById("consultForm").reset();
+  selectedAnimal = "";
+  symCount.textContent = "0";
+  behCount.textContent = "0";
+  label.textContent = "Select animal type";
+  label.classList.add("placeholder");
+  label.classList.remove("chosen");
+  previewImg.style.display = "none";
+  previewImg.src = "";
+  fileInput.value = "";
 
-    email:
-      user.email || "",
+  sessionStorage.removeItem("mediscan_animal_ai_result");
+  sessionStorage.removeItem("mediscan_animal_uploaded_image");
+  sessionStorage.removeItem("mediscan_current_report_id");
+});
 
-    type:
-      "Animal",
+// ==========================================
+// SEND ANIMAL DATA TO FLASK + GEMINI
+// ==========================================
 
-    status:
-      "Completed",
+document.getElementById("consultForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    createdAt:
-      serverTimestamp(),
+  const user = auth.currentUser;
 
-    animalType:
-      selectedAnimal,
-
-    breed:
-      breed,
-
-    age:
-      age,
-
-    ageUnit:
-      age_unit,
-
-    symptoms:
-      symptoms.value.trim(),
-
-    behaviour:
-      behaviour.value.trim(),
-
-    aiResult:
-      data.result,
-
-    downloaded:
-      false
+  if (!user) {
+    alert("Please log in before starting a consultation.");
+    window.location.href = "login.html";
+    return;
   }
-);
 
+  // ----------------------------------------
+  // Get form values
+  // ----------------------------------------
 
-console.log(
-  "Animal report saved:",
-  reportRef.id
-);
+  const breedInput = document.querySelector('.field input[type="text"]');
+  const ageInput = document.querySelector('.age-row input[type="number"]');
+  const ageUnit = document.querySelector(".unit-select");
 
+  const breed = breedInput ? breedInput.value.trim() : "";
+  const age = ageInput ? ageInput.value.trim() : "";
+  const age_unit = ageUnit ? ageUnit.value : "Years";
+  const image = fileInput.files[0];
 
-// Remember the report ID
-sessionStorage.setItem(
-  "mediscan_current_report_id",
-  reportRef.id
-);
+  // ----------------------------------------
+  // Validation
+  // ----------------------------------------
 
+  if (!selectedAnimal) {
+    alert("Please select the animal type.");
+    return;
+  }
 
-        // --------------------------------------
-        // Save Gemini result
-        // --------------------------------------
+  if (!symptoms.value.trim()) {
+    alert("Please describe the animal's symptoms.");
+    symptoms.focus();
+    return;
+  }
 
-        sessionStorage.setItem(
-          "mediscan_animal_ai_result",
-          data.result
-        );
+  if (!image) {
+    alert("Please upload an image for AI analysis.");
+    return;
+  }
 
+  // ----------------------------------------
+  // Create FormData
+  // ----------------------------------------
 
-        // --------------------------------------
-        // Save image
-        // --------------------------------------
+  const formData = new FormData();
 
-        sessionStorage.setItem(
-          "mediscan_animal_uploaded_image",
-          previewImg.src
-        );
+  formData.append("type", "animal");
+  formData.append("animal_type", selectedAnimal);
+  formData.append("breed", breed);
+  formData.append("age", age);
+  formData.append("age_unit", age_unit);
+  formData.append("symptoms", symptoms.value.trim());
+  formData.append("behaviour", behaviour.value.trim());
+  formData.append("image", image);
 
+  // ----------------------------------------
+  // Save animal information for results page
+  // ----------------------------------------
 
-        // --------------------------------------
-        // Open animal results
-        // --------------------------------------
+  sessionStorage.setItem(
+    "mediscan_animal_consultation",
+    JSON.stringify({
+      animal_type: selectedAnimal,
+      breed: breed,
+      age: age,
+      age_unit: age_unit,
+      symptoms: symptoms.value.trim(),
+      behaviour: behaviour.value.trim()
+    })
+  );
 
-        window.location.href =
-          "animal-analysis-results.html";
+  sessionStorage.setItem(
+    "mediscan_animal_symptoms",
+    symptoms.value.trim()
+  );
 
-      }
+  sessionStorage.setItem(
+    "mediscan_animal_behaviour",
+    behaviour.value.trim()
+  );
 
+  // ----------------------------------------
+  // Loading button
+  // ----------------------------------------
 
-      catch (error) {
+  const analyzeBtn = document.querySelector(".btn-analyze");
+  const originalText = analyzeBtn.innerHTML;
 
-        console.error(
-          "MediScan Animal AI Error:",
-          error
-        );
+  analyzeBtn.disabled = true;
+  analyzeBtn.innerHTML = "⏳ Analyzing with AI...";
 
+  // ----------------------------------------
+  // Send to Flask
+  // ----------------------------------------
 
-        alert(
-          "Animal AI analysis failed.\n\n" +
-          "Make sure your Flask backend is running at:\n" +
-          "https://medscan-ai-2-eg67.onrender.com\n\n"  +
-          "Error: " +
-          error.message
-        );
-
-
-        analyzeBtn.disabled = false;
-
-        analyzeBtn.innerHTML =
-          originalText;
-
-      }
-
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      body: formData
     });
+
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(
+        data.error || "Animal AI analysis failed."
+      );
+    }
+
+    // ==========================================
+    // SAVE ANIMAL REPORT TO FIRESTORE
+    // ==========================================
+
+    const reportRef = await addDoc(
+      collection(db, "users", user.uid, "consultations"),
+      {
+        userId: user.uid,
+        email: user.email || "",
+        type: "Animal",
+        status: "Completed",
+        createdAt: serverTimestamp(),
+        animalType: selectedAnimal,
+        breed: breed,
+        age: age,
+        ageUnit: age_unit,
+        symptoms: symptoms.value.trim(),
+        behaviour: behaviour.value.trim(),
+        aiResult: data.result,
+        downloaded: false
+      }
+    );
+
+    console.log("Animal report saved:", reportRef.id);
+
+    sessionStorage.setItem(
+      "mediscan_current_report_id",
+      reportRef.id
+    );
+
+    // --------------------------------------
+    // Save Gemini result and image
+    // --------------------------------------
+
+    sessionStorage.setItem(
+      "mediscan_animal_ai_result",
+      data.result
+    );
+
+    sessionStorage.setItem(
+      "mediscan_animal_uploaded_image",
+      previewImg.src
+    );
+
+    // --------------------------------------
+    // Open animal results
+    // --------------------------------------
+
+    window.location.href = "animal-analysis-results.html";
+
+  } catch (error) {
+    console.error("MediScan Animal AI Error:", error);
+
+    alert(
+      "Animal AI analysis failed.\n\n" +
+      "Make sure your Flask backend is running at:\n" +
+      "https://medscan-ai-2-eg67.onrender.com\n\n" +
+      "Error: " +
+      error.message
+    );
+
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = originalText;
+  }
+});
 
 </script>
 

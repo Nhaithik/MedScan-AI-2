@@ -290,14 +290,14 @@
           <div>
             <div class="panel">
               <div class="upload-title">⬆️ Upload Image (Optional)</div>
-              <label class="dropzone" id="dropzone" for="fileInput"></label>
-                <div class="cloud">☁️</div>
-                <div class="main-text">Drag &amp; drop your image here<br>or <a href="#">click to browse</a></div>
-                <div class="sub-text">Supported formats: JPG, PNG, JPEG</div>
-                <div class="sub-text">Max file size: 10MB</div>
-                <input type="file" id="fileInput" accept="image/png, image/jpeg" style="display:none;">
-                <img id="previewImg" class="preview-img">
-              </label>
+              <label class="dropzone" id="dropzone" for="fileInput">
+              <div class="cloud">☁️</div>
+              <div class="main-text">Drag &amp; drop your image here<br>or <a href="#">click to browse</a></div>
+              <div class="sub-text">Supported formats: JPG, PNG, JPEG</div>
+              <div class="sub-text">Max file size: 10MB</div>
+              <input type="file" id="fileInput" accept="image/png, image/jpeg" style="display:none;">
+              <img id="previewImg" class="preview-img">
+            </label>
 
               <div class="tips-box">
                 <div class="th">💡 Tips for better results</div>
@@ -344,636 +344,309 @@
 
 <script type="module">
 
-  // ==========================================
-  // FIREBASE
-  // ==========================================
-
-  import {
-    auth,
-    db,
-    addDoc,
-    collection,
-    serverTimestamp
-  } from "./firebase.js";
-
-
-  // ==========================================
-  // GET ELEMENTS
-  // ==========================================
-
-  const form =
-    document.getElementById("consultForm");
-
-  const dropzone =
-    document.getElementById("dropzone");
-
-  const fileInput =
-    document.getElementById("fileInput");
-
-  const previewImg =
-    document.getElementById("previewImg");
-
-  const clearBtn =
-    document.getElementById("clearBtn");
-
-  const symptoms =
-    document.getElementById("symptoms");
-
-  const charCount =
-    document.getElementById("charCount");
-
-  const analyzeBtn =
-    document.querySelector(".btn-analyze");
-
-
-  console.log("Human consultation script loaded");
-
-
-  // ==========================================
-  // CHARACTER COUNTER
-  // ==========================================
-
-  symptoms.addEventListener("input", () => {
-
-    charCount.textContent =
-      symptoms.value.length;
-
-  });
-
-
-
-  // ==========================================
-  // DRAG & DROP
-  // ==========================================
-
-  dropzone.addEventListener("dragover", (e) => {
-
-    e.preventDefault();
-
-    dropzone.classList.add("dragover");
-
-  });
-
-
-  dropzone.addEventListener("dragleave", () => {
-
-    dropzone.classList.remove("dragover");
-
-  });
-
-
-  dropzone.addEventListener("drop", (e) => {
-
-    e.preventDefault();
-
-    dropzone.classList.remove("dragover");
-
-
-    if (e.dataTransfer.files.length) {
-
-      fileInput.files =
-        e.dataTransfer.files;
-
-      handleFile(
-        e.dataTransfer.files[0]
-      );
-
-    }
-
-  });
-
-
-  // ==========================================
-  // FILE INPUT
-  // ==========================================
-
-  fileInput.addEventListener("change", () => {
-
-    if (fileInput.files.length) {
-
-      handleFile(
-        fileInput.files[0]
-      );
-
-    }
-
-  });
-
-
-  let selectedImage = null;
-
-
-  function handleFile(file) {
-
-    if (
-      !file.type.match(
-        /^image\/(jpeg|png|jpg)$/
-      )
-    ) {
-
-      alert(
-        "Please upload a JPG, JPEG, or PNG image."
-      );
-
-      fileInput.value = "";
-
-      return;
-
-    }
-
-
-    if (
-      file.size >
-      10 * 1024 * 1024
-    ) {
-
-      alert(
-        "Image must be smaller than 10MB."
-      );
-
-      fileInput.value = "";
-
-      return;
-
-    }
-
-
-    selectedImage = file;
-
-
-    const reader =
-      new FileReader();
-
-
-    reader.onload = (e) => {
-
-      previewImg.src =
-        e.target.result;
-
-      previewImg.style.display =
-        "block";
-
-
-      sessionStorage.setItem(
-        "mediscan_uploaded_image",
-        e.target.result
-      );
-
-    };
-
-
-    reader.readAsDataURL(file);
-
-  }
-
-
-  // ==========================================
-  // CLEAR FORM
-  // ==========================================
-
-  clearBtn.addEventListener("click", () => {
-
-    form.reset();
-
-    selectedImage = null;
-
-    fileInput.value = "";
-
-    previewImg.src = "";
-
-    previewImg.style.display = "none";
-
-    charCount.textContent = "0";
-
-
-    sessionStorage.removeItem(
-      "mediscan_uploaded_image"
-    );
-
-    sessionStorage.removeItem(
-      "mediscan_ai_result"
-    );
-
-  });
-
-
-  // ==========================================
-  // SUBMIT / ANALYZE
-  // ==========================================
-
-  form.addEventListener("submit", async (e) => {
-
-    e.preventDefault();
-
-
-    console.log(
-      "Analyze button clicked"
-    );
-
-
-    // ------------------------------------------
-    // CHECK LOGIN
-    // ------------------------------------------
-
-    const user =
-      auth.currentUser;
-
-
-    if (!user) {
-
-      alert(
-        "Please log in before starting a consultation."
-      );
-
-      window.location.href =
-        "login.html";
-
-      return;
-
-    }
-
-
-    // ------------------------------------------
-    // CHECK IMAGE
-    // ------------------------------------------
-
-    if (!selectedImage) {
-
-      alert(
-        "Please upload a medical image first."
-      );
-
-      return;
-
-    }
-
-
-    analyzeBtn.disabled =
-      true;
-
-    analyzeBtn.innerHTML =
-      "⏳ Analyzing with AI...";
-
-
-    try {
-
-      // ----------------------------------------
-      // CONVERT IMAGE
-      // ----------------------------------------
-
-      const imageBase64 =
-        await fileToBase64(
-          selectedImage
-        );
-
-
-      console.log(
-        "Image converted successfully"
-      );
-
-
-      // ----------------------------------------
-      // SEND TO FLASK / RENDER
-      // ----------------------------------------
-
-      const response =
-        await fetch(
-          "https://medscan-ai-2-eg67.onrender.com/analyze",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body: JSON.stringify({
-              image: imageBase64
-            })
-          }
-        );
-
-
-      console.log(
-        "Backend response:",
-        response.status
-      );
-
-
-      if (!response.ok) {
-
-        throw new Error(
-          `Server returned ${response.status}`
-        );
-
-      }
-
-
-      const data =
-        await response.json();
-
-
-      if (!data.success) {
-
-        throw new Error(
-          data.error ||
-          "AI analysis failed."
-        );
-
-      }
-
-
-      console.log(
-        "AI analysis successful"
-      );
-
-      // ==========================================
-// SAVE HUMAN REPORT TO FIRESTORE
+// ==========================================
+// FIREBASE
 // ==========================================
 
-const user = auth.currentUser;
+import {
+  auth,
+  db,
+  addDoc,
+  collection,
+  serverTimestamp
+} from "./firebase.js";
 
-if (!user) {
-  throw new Error(
-    "You must be logged in to save this consultation."
-  );
-}
+// ==========================================
+// GET ELEMENTS
+// ==========================================
 
+const form = document.getElementById("consultForm");
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("fileInput");
+const previewImg = document.getElementById("previewImg");
+const clearBtn = document.getElementById("clearBtn");
+const symptoms = document.getElementById("symptoms");
+const charCount = document.getElementById("charCount");
+const analyzeBtn = document.querySelector(".btn-analyze");
 
-// Collect the form information
-const consultationData = {};
+console.log("Human consultation script loaded");
 
-form.querySelectorAll(
-  "input, select, textarea"
-).forEach((field) => {
+// ==========================================
+// CHARACTER COUNTER
+// ==========================================
 
-  if (field.type === "file") {
-    return;
-  }
-
-  if (!field.id && !field.name) {
-    return;
-  }
-
-  const key =
-    field.id ||
-    field.name;
-
-  consultationData[key] =
-    field.value;
-
+symptoms.addEventListener("input", () => {
+  charCount.textContent = symptoms.value.length;
 });
 
-
-// Save the report
-const reportRef = await addDoc(
-  collection(
-    db,
-    "users",
-    user.uid,
-    "consultations"
-  ),
-  {
-    userId: user.uid,
-
-    email:
-      user.email || "",
-
-    type:
-      "Human",
-
-    status:
-      "Completed",
-
-    createdAt:
-      serverTimestamp(),
-
-    symptoms:
-      symptoms.value.trim(),
-
-    consultationData:
-      consultationData,
-
-    aiResult:
-      data.result,
-
-    downloaded:
-      false
-  }
-);
-
-
-console.log(
-  "Human report saved:",
-  reportRef.id
-);
-
-
-// Remember the report ID
-sessionStorage.setItem(
-  "mediscan_current_report_id",
-  reportRef.id
-);
-
-      // ----------------------------------------
-      // SAVE TEMPORARY RESULT
-      // ----------------------------------------
-
-      sessionStorage.setItem(
-        "mediscan_ai_result",
-        data.result
-      );
-
-
-      sessionStorage.setItem(
-        "mediscan_uploaded_image",
-        imageBase64
-      );
-
-
-      // ----------------------------------------
-      // COLLECT FORM DATA
-      // ----------------------------------------
-
-      const consultationData = {};
-
-
-      form
-        .querySelectorAll(
-          "input, select, textarea"
-        )
-        .forEach((field) => {
-
-          if (
-            field.type === "file"
-          ) {
-            return;
-          }
-
-
-          let key =
-            field.id ||
-            field.name ||
-            "";
-
-
-          const parent =
-            field.closest(".field");
-
-
-          const label =
-            parent
-              ?.querySelector("label");
-
-
-          if (label) {
-
-            key =
-              label.textContent
-                .replace("*", "")
-                .trim();
-
-          }
-
-
-          if (key) {
-
-            consultationData[key] =
-              field.value;
-
-          }
-
-        });
-
-
-      // ----------------------------------------
-      // SAVE TO FIRESTORE
-      // ----------------------------------------
-
-      const reportRef =
-        await addDoc(
-
-          collection(
-            db,
-            "users",
-            user.uid,
-            "consultations"
-          ),
-
-          {
-            userId:
-              user.uid,
-
-            email:
-              user.email || "",
-
-            type:
-              "Human",
-
-            status:
-              "Completed",
-
-            createdAt:
-              serverTimestamp(),
-
-            symptoms:
-              symptoms.value.trim(),
-
-            consultationData:
-              consultationData,
-
-            aiResult:
-              data.result
-
-          }
-
-        );
-
-
-      console.log(
-        "Firestore report saved:",
-        reportRef.id
-      );
-
-
-      sessionStorage.setItem(
-        "mediscan_current_report_id",
-        reportRef.id
-      );
-
-
-      // ----------------------------------------
-      // OPEN RESULTS PAGE
-      // ----------------------------------------
-
-      window.location.href =
-        "analysis-results.html";
-
-
-    } catch (error) {
-
-      console.error(
-        "Human consultation error:",
-        error
-      );
-
-
-      alert(
-        "Unable to analyze the image.\n\n" +
-        error.message
-      );
-
-
-      analyzeBtn.disabled =
-        false;
-
-      analyzeBtn.innerHTML =
-        "✨ Analyze with AI →";
-
+// ==========================================
+// DRAG & DROP / FILE INPUT
+// ==========================================
+
+dropzone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dropzone.classList.add("dragover");
+});
+
+dropzone.addEventListener("dragleave", () => {
+  dropzone.classList.remove("dragover");
+});
+
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropzone.classList.remove("dragover");
+
+  if (e.dataTransfer.files.length) {
+    const file = e.dataTransfer.files[0];
+    handleFile(file);
+
+    try {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      fileInput.files = dataTransfer.files;
+    } catch (_) {
+      // The preview still works; submit uses the normal file picker.
     }
+  }
+});
 
-  });
+fileInput.addEventListener("change", () => {
+  if (fileInput.files.length) {
+    handleFile(fileInput.files[0]);
+  }
+});
 
+let selectedImage = null;
 
-  // ==========================================
-  // FILE TO BASE64
-  // ==========================================
+function handleFile(file) {
+  if (!file.type.match(/^image\/(jpeg|png|jpg)$/)) {
+    alert("Please upload a JPG, JPEG, or PNG image.");
+    fileInput.value = "";
+    selectedImage = null;
+    return;
+  }
 
-  function fileToBase64(file) {
+  if (file.size > 10 * 1024 * 1024) {
+    alert("Image must be smaller than 10MB.");
+    fileInput.value = "";
+    selectedImage = null;
+    return;
+  }
 
-    return new Promise(
-      (resolve, reject) => {
+  selectedImage = file;
 
-        const reader =
-          new FileReader();
+  const reader = new FileReader();
 
+  reader.onload = (e) => {
+    previewImg.src = e.target.result;
+    previewImg.style.display = "block";
 
-        reader.onload = () => {
+    sessionStorage.setItem(
+      "mediscan_uploaded_image",
+      e.target.result
+    );
+  };
 
-          resolve(
-            reader.result
-          );
+  reader.readAsDataURL(file);
+}
 
-        };
+// ==========================================
+// CLEAR FORM
+// ==========================================
 
+clearBtn.addEventListener("click", () => {
+  form.reset();
+  selectedImage = null;
+  fileInput.value = "";
+  previewImg.src = "";
+  previewImg.style.display = "none";
+  charCount.textContent = "0";
 
-        reader.onerror = () => {
+  sessionStorage.removeItem("mediscan_uploaded_image");
+  sessionStorage.removeItem("mediscan_ai_result");
+  sessionStorage.removeItem("mediscan_current_report_id");
+});
 
-          reject(
-            new Error(
-              "Could not read the image."
-            )
-          );
+// ==========================================
+// SUBMIT / ANALYZE
+// ==========================================
 
-        };
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
+  console.log("Analyze button clicked");
 
-        reader.readAsDataURL(file);
+  // ------------------------------------------
+  // CHECK LOGIN
+  // ------------------------------------------
 
+  const user = auth.currentUser;
+
+  if (!user) {
+    alert("Please log in before starting a consultation.");
+    window.location.href = "login.html";
+    return;
+  }
+
+  // ------------------------------------------
+  // CHECK IMAGE
+  // ------------------------------------------
+
+  if (!selectedImage) {
+    alert("Please upload a medical image first.");
+    return;
+  }
+
+  analyzeBtn.disabled = true;
+  analyzeBtn.innerHTML = "⏳ Analyzing with AI...";
+
+  try {
+    // ----------------------------------------
+    // CONVERT IMAGE
+    // ----------------------------------------
+
+    const imageBase64 = await fileToBase64(selectedImage);
+
+    console.log("Image converted successfully");
+
+    // ----------------------------------------
+    // SEND TO FLASK / RENDER
+    // ----------------------------------------
+
+    const response = await fetch(
+      "https://medscan-ai-2-eg67.onrender.com/analyze",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          image: imageBase64
+        })
       }
     );
 
+    console.log("Backend response:", response.status);
+
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(
+        data.error || "AI analysis failed."
+      );
+    }
+
+    console.log("AI analysis successful");
+
+    // ==========================================
+    // COLLECT HUMAN FORM DATA ONCE
+    // ==========================================
+
+    const consultationData = {};
+
+    form.querySelectorAll("input, select, textarea").forEach((field) => {
+      if (field.type === "file") {
+        return;
+      }
+
+      let key = field.id || field.name || "";
+
+      const parent = field.closest(".field");
+      const label = parent?.querySelector("label");
+
+      if (label) {
+        key = label.textContent
+          .replace("*", "")
+          .trim();
+      }
+
+      if (key) {
+        consultationData[key] = field.value;
+      }
+    });
+
+    // ==========================================
+    // SAVE HUMAN REPORT TO FIRESTORE
+    // ==========================================
+
+    const reportRef = await addDoc(
+      collection(db, "users", user.uid, "consultations"),
+      {
+        userId: user.uid,
+        email: user.email || "",
+        type: "Human",
+        status: "Completed",
+        createdAt: serverTimestamp(),
+        symptoms: symptoms.value.trim(),
+        consultationData: consultationData,
+        aiResult: data.result,
+        downloaded: false
+      }
+    );
+
+    console.log("Human report saved:", reportRef.id);
+
+    sessionStorage.setItem(
+      "mediscan_current_report_id",
+      reportRef.id
+    );
+
+    // ----------------------------------------
+    // SAVE TEMPORARY RESULT
+    // ----------------------------------------
+
+    sessionStorage.setItem(
+      "mediscan_ai_result",
+      data.result
+    );
+
+    sessionStorage.setItem(
+      "mediscan_uploaded_image",
+      imageBase64
+    );
+
+    // ----------------------------------------
+    // OPEN RESULTS PAGE
+    // ----------------------------------------
+
+    window.location.href = "analysis-results.html";
+
+  } catch (error) {
+    console.error("Human consultation error:", error);
+
+    alert(
+      "Unable to analyze the image.\n\n" +
+      error.message
+    );
+
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = "✨ Analyze with AI →";
   }
+});
+
+// ==========================================
+// FILE TO BASE64
+// ==========================================
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      resolve(reader.result);
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Could not read the image."));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
 
 </script>
 
