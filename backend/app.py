@@ -226,6 +226,65 @@ Important:
             "error": str(e)
         }), 500
 
+# ---------------------------------------
+# AI ASSISTANT CHAT
+# ---------------------------------------
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        message = str(
+            data.get("message", "")
+        ).strip()
+
+        if not message:
+            return jsonify({
+                "success": False,
+                "error": "Message is required."
+            }), 400
+
+        prompt = f"""
+You are MediScan AI Assistant.
+
+You are a helpful healthcare information assistant
+for the MediScan AI website.
+
+Rules:
+- Give clear, simple, safe health information.
+- Do not claim to diagnose diseases.
+- Do not prescribe medicines or doses.
+- For emergencies, advise the user to seek immediate
+  professional medical care.
+- Keep answers concise and easy to understand.
+
+User message:
+{message}
+
+Answer:
+"""
+
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt
+        )
+
+        return jsonify({
+            "success": True,
+            "reply": response.text
+        })
+
+    except Exception as error:
+
+        print("CHAT ERROR:")
+        print(error)
+
+        return jsonify({
+            "success": False,
+            "error": str(error)
+        }), 500
+
 
 # ---------------------------------------
 # Start Flask

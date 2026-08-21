@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>MediScan AI — AI Assistant</title>
+
+  <link
+    rel="stylesheet"
+    href="shared-dark.css"
+  >
+
+  <style>
+
+    :root {
+      --blue: #2f6fed;
+      --blue-dark: #1e4fc4;
+      --green: #3cb897;
+      --purple: #7c6ff0;
+      --pink: #ef5f8a;
+      --ink: #12213e;
+      --muted: #5b6b8c;
+      --border: #e6ebf5;
+      --bg-soft: #f6f9fd;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family:
+        'Segoe UI',
+        -apple-system,
+        BlinkMacSystemFont,
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+      background: var(--bg-soft);
+      color: var(--ink);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 270px 1fr;
+      min-height: 100vh;
+    }
+
+    /* =========================
+       SIDEBAR
+       ========================= */
+
+    .sidebar {
+      background: #fff;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 26px 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 34px;
+      padding: 0 6px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand .mark {
+      font-size: 26px;
+    }
+
+    .brand .name {
+      font-weight: 700;
+      font-size: 17px;
+    }
+
+    .brand .blue {
+      color: var(--blue);
+    }
+
+    .brand .green {
+      color: var(--green);
+    }
+
+    .brand .sub {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .nav-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14.5px;
+      font-weight: 500;
+      color: var(--ink);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .nav-item .ic {
+      width: 20px;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-soft);
+    }
+
+    .nav-item.active {
+      background: #eaf1ff;
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    .nav-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 14px 0;
+    }
+
+    .help-box {
+      background: #eaf1ff;
+      border-radius: 14px;
+      padding: 18px;
+      margin-top: 16px;
+    }
+
+    .help-box b {
+      font-size: 13.5px;
+      color: var(--blue-dark);
+    }
+
+    .help-box p {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 8px 0 14px;
+    }
+
+    .chat-btn {
+      width: 100%;
+      background: white;
+      border: 1px solid #cfe0ff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--blue);
+      cursor: pointer;
+    }
+
+    /* =========================
+       MAIN
+       ========================= */
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 34px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .breadcrumb b {
+      color: var(--ink);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+
+    .bell {
+      position: relative;
+      font-size: 19px;
+    }
+
+    .bell .dot {
+      position: absolute;
+      top: -6px;
+      right: -8px;
+      background: var(--pink);
+      color: white;
+      font-size: 10px;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar-circle {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #ffe3c2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .user-chip b {
+      font-size: 14px;
+      display: block;
+    }
+
+    .user-chip span {
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    /* =========================
+       PAGE
+       ========================= */
+
+    .content {
+      padding: 30px 34px;
+      flex: 1;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 24px;
+    }
+
+    .page-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 15px;
+      background: #eaf1ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .page-header h1 {
+      font-size: 26px;
+      font-weight: 800;
+    }
+
+    .page-header p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* =========================
+       CHAT PANEL
+       ========================= */
+
+    .chat-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(18,33,62,0.08);
+      max-width: 1000px;
+      margin: 0 auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 190px);
+      min-height: 560px;
+    }
+
+    .chat-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .chat-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #eaf1ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+
+    .chat-header h2 {
+      font-size: 17px;
+    }
+
+    .chat-header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .online {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px;
+      background: #fbfcff;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      max-width: 75%;
+      padding: 14px 17px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background: #eef3ff;
+      color: var(--ink);
+      border-bottom-left-radius: 5px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--blue);
+      color: white;
+      border-bottom-right-radius: 5px;
+    }
+
+    .typing {
+      display: none;
+      align-self: flex-start;
+      background: #eef3ff;
+      color: var(--muted);
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-size: 13px;
+    }
+
+    .chat-input-area {
+      padding: 18px;
+      border-top: 1px solid var(--border);
+      background: white;
+    }
+
+    .chat-input-box {
+      display: flex;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 8px 10px 8px 15px;
+      background: #fbfcfe;
+    }
+
+    .chat-input-box:focus-within {
+      border-color: var(--blue);
+      background: white;
+    }
+
+    #chatInput {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    #sendButton {
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 11px;
+      background: var(--blue);
+      color: white;
+      font-size: 19px;
+      cursor: pointer;
+    }
+
+    #sendButton:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .warning {
+      margin-top: 9px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    @media (max-width: 900px) {
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .content {
+        padding: 20px;
+      }
+
+      .chat-card {
+        height: calc(100vh - 150px);
+      }
+
+      .message {
+        max-width: 88%;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+  <!-- =========================
+       SIDEBAR
+       ========================= -->
+
+  <aside class="sidebar">
+
+    <a
+      href="dashboard.html"
+      class="brand"
+    >
+
+      <span class="mark">🩺</span>
+
+      <span class="name">
+
+        <span class="blue">
+          Medi
+        </span>
+
+        <span class="green">
+          Scan AI
+        </span>
+
+        <span class="sub">
+          AI Healthcare Assistant
+        </span>
+
+      </span>
+
+    </a>
+
+
+    <div class="nav-main">
+
+      <a
+        href="dashboard.html"
+        class="nav-item"
+      >
+        <span class="ic">🏠</span>
+        Dashboard
+      </a>
+
+
+      <a
+        href="human-consultation.html"
+        class="nav-item"
+      >
+        <span class="ic">🧑</span>
+        Human Health
+      </a>
+
+
+      <a
+        href="animal-consultation.html"
+        class="nav-item"
+      >
+        <span class="ic">🐾</span>
+        Animal Health
+      </a>
+
+
+      <a
+        href="consultation-history.html"
+        class="nav-item"
+      >
+        <span class="ic">📋</span>
+        Consultation History
+      </a>
+
+
+      <a
+        href="ai-assistant.html"
+        class="nav-item active"
+      >
+        <span class="ic">🤖</span>
+        AI Assistant
+      </a>
+
+
+      <a
+        href="profile.html"
+        class="nav-item"
+      >
+        <span class="ic">👤</span>
+        Profile
+      </a>
+
+
+      <a
+        href="settings.html"
+        class="nav-item"
+      >
+        <span class="ic">⚙️</span>
+        Settings
+      </a>
+
+
+      <div class="nav-divider"></div>
+
+
+      <a
+        href="index.html"
+        class="nav-item"
+      >
+        <span class="ic">↩️</span>
+        Logout
+      </a>
+
+    </div>
+
+
+    <div class="help-box">
+
+      <b>Need Help?</b>
+
+      <p>
+        Chat with the MediScan AI Assistant.
+      </p>
+
+    </div>
+
+  </aside>
+
+
+  <!-- =========================
+       MAIN
+       ========================= -->
+
+  <div class="main">
+
+
+    <div class="topbar">
+
+      <div class="breadcrumb">
+
+        <a href="dashboard.html">
+          Dashboard
+        </a>
+
+        <span>›</span>
+
+        <b>
+          AI Assistant
+        </b>
+
+      </div>
+
+
+      <div class="topbar-right">
+
+        <div class="bell">
+          🔔
+          <span class="dot">
+            3
+          </span>
+        </div>
+
+
+        <div class="user-chip">
+
+          <div class="avatar-circle">
+            🧑
+          </div>
+
+          <div>
+            <b>Hello, User</b>
+            <span>Premium Member</span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="content">
+
+
+      <div class="page-header">
+
+        <div class="page-icon">
+          🤖
+        </div>
+
+        <div>
+
+          <h1>
+            AI Assistant
+          </h1>
+
+          <p>
+            Chat with MediScan AI for health information and guidance.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="chat-card">
+
+
+        <div class="chat-header">
+
+          <div class="chat-avatar">
+            🤖
+          </div>
+
+          <div>
+
+            <h2>
+              MediScan AI Assistant
+            </h2>
+
+            <p>
+              AI Healthcare Assistant
+            </p>
+
+          </div>
+
+          <div class="online">
+            ● Online
+          </div>
+
+        </div>
+
+
+        <div
+          class="chat-messages"
+          id="chatMessages"
+        >
+
+          <div class="message assistant">
+
+            Hello! 👋
+
+            I’m MediScan AI Assistant.
+
+            You can ask me about symptoms, general health information, preventive care, or questions about your consultation reports.
+
+            Please remember that I provide informational guidance and cannot replace a doctor or veterinarian.
+
+          </div>
+
+
+          <div
+            class="typing"
+            id="typing"
+          >
+            AI Assistant is thinking...
+          </div>
+
+        </div>
+
+
+        <div class="chat-input-area">
+
+          <div class="chat-input-box">
+
+            <input
+              type="text"
+              id="chatInput"
+              placeholder="Type your message..."
+              autocomplete="off"
+            >
+
+            <button
+              id="sendButton"
+              type="button"
+            >
+              ➤
+            </button>
+
+          </div>
+
+
+          <div class="warning">
+
+            MediScan AI provides informational guidance,
+            not a medical diagnosis.
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+const API_URL = "https://medscan-ai-2-eg67.onrender.com/chat";
+
+
+const chatInput =
+  document.getElementById(
+    "chatInput"
+  );
+
+
+const sendButton =
+  document.getElementById(
+    "sendButton"
+  );
+
+
+const chatMessages =
+  document.getElementById(
+    "chatMessages"
+  );
+
+
+const typing =
+  document.getElementById(
+    "typing"
+  );
+
+
+function addMessage(
+  text,
+  type
+) {
+
+  const message =
+    document.createElement(
+      "div"
+    );
+
+
+  message.className =
+    `message ${type}`;
+
+
+  message.textContent =
+    text;
+
+
+  chatMessages.insertBefore(
+    message,
+    typing
+  );
+
+
+  chatMessages.scrollTop =
+    chatMessages.scrollHeight;
+
+}
+
+
+async function sendMessage() {
+
+  const message =
+    chatInput.value.trim();
+
+
+  if (!message) {
+    return;
+  }
+
+
+  addMessage(
+    message,
+    "user"
+  );
+
+
+  chatInput.value =
+    "";
+
+
+  chatInput.disabled =
+    true;
+
+  sendButton.disabled =
+    true;
+
+
+  typing.style.display =
+    "block";
+
+
+  chatMessages.scrollTop =
+    chatMessages.scrollHeight;
+
+
+  try {
+
+    const response =
+      await fetch(
+        API_URL,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            message: message
+          })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      throw new Error(
+        data.error ||
+        "AI assistant failed."
+      );
+
+    }
+
+
+    addMessage(
+      data.reply,
+      "assistant"
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Assistant error:",
+      error
+    );
+
+
+    addMessage(
+      "Sorry, I could not connect to the AI assistant. Please try again.",
+      "assistant"
+    );
+
+  } finally {
+
+    typing.style.display =
+      "none";
+
+    chatInput.disabled =
+      false;
+
+    sendButton.disabled =
+      false;
+
+    chatInput.focus();
+
+  }
+
+}
+
+
+sendButton.addEventListener(
+  "click",
+  sendMessage
+);
+
+
+chatInput.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (
+      event.key === "Enter"
+    ) {
+
+      event.preventDefault();
+
+      sendMessage();
+
+    }
+
+  }
+);
+
+</script>
+
+
+<script src="shared.js"></script>
+
+</body>
+
+</html>
