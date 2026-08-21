@@ -290,14 +290,25 @@
           <div>
             <div class="panel">
               <div class="upload-title">⬆️ Upload Image (Optional)</div>
-              <label class="dropzone" id="dropzone" for="fileInput">
-              <div class="cloud">☁️</div>
-              <div class="main-text">Drag &amp; drop your image here<br>or <a href="#">click to browse</a></div>
-              <div class="sub-text">Supported formats: JPG, PNG, JPEG</div>
-              <div class="sub-text">Max file size: 10MB</div>
-              <input type="file" id="fileInput" accept="image/png, image/jpeg" style="display:none;">
-              <img id="previewImg" class="preview-img">
-            </label>
+              <div class="dropzone" id="dropzone">
+  <div class="cloud">☁️</div>
+  <div class="main-text">
+    Drag &amp; drop your image here<br>
+    or <a href="#">click to browse</a>
+  </div>
+  <div class="sub-text">Supported formats: JPG, PNG, JPEG</div>
+  <div class="sub-text">Max file size: 10MB</div>
+
+  <input
+    type="file"
+    id="fileInput"
+    accept="image/png, image/jpeg"
+    style="display:none;"
+  >
+
+  <img id="previewImg" class="preview-img">
+</div>
+        
 
               <div class="tips-box">
                 <div class="th">💡 Tips for better results</div>
