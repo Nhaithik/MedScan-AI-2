@@ -9,13 +9,11 @@ import {
   onAuthStateChanged
 } from "./firebase.js";
 
-
 /* =========================================================
    ELEMENTS
-   ========================================================= */
+========================================================= */
 
-const tableBody =
-  document.getElementById("tableBody");
+const tableBody = document.getElementById("tableBody");
 
 const totalConsultations =
   document.getElementById("totalConsultations");
@@ -29,42 +27,24 @@ const typeFilter =
 const statusFilter =
   document.getElementById("statusFilter");
 
-const resetBtn =
-  document.getElementById("resetBtn");
-
-const resultsNote =
-  document.querySelector(".results-note");
-
-
-/* =========================================================
-   DATE RANGE ELEMENTS
-   ========================================================= */
-
-const dateRangeBtn =
-  document.getElementById("dateRangeBtn");
-
-const dateRangeText =
-  document.getElementById("dateRangeText");
-
-const datePicker =
-  document.getElementById("datePicker");
-
 const startDateInput =
   document.getElementById("startDate");
 
 const endDateInput =
   document.getElementById("endDate");
 
-const applyDateBtn =
-  document.getElementById("applyDateBtn");
+const resetBtn =
+  document.getElementById("resetBtn");
 
-const clearDateBtn =
-  document.getElementById("clearDateBtn");
+const resultsNote =
+  document.querySelector(".results-note");
 
+const pagination =
+  document.querySelector(".pagination");
 
 /* =========================================================
    DATA
-   ========================================================= */
+========================================================= */
 
 let allReports = [];
 
@@ -74,19 +54,17 @@ let currentPage = 1;
 
 const pageSize = 5;
 
-
 /* =========================================================
-   DATE FILTER STATE
-   ========================================================= */
+   DATE STATE
+========================================================= */
 
 let selectedStartDate = null;
 
 let selectedEndDate = null;
 
-
 /* =========================================================
-   HTML ESCAPE
-   ========================================================= */
+   ESCAPE HTML
+========================================================= */
 
 function escapeHtml(value) {
 
@@ -96,26 +74,68 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-
 }
 
-
 /* =========================================================
-   REPORT DATE
-   ========================================================= */
+   GET REPORT DATE
+========================================================= */
 
 function getReportDate(report) {
 
-  return report.createdAt?.toDate
-    ? report.createdAt.toDate()
-    : new Date(0);
+  if (!report) {
+    return new Date(0);
+  }
 
+  const value = report.createdAt;
+
+  if (!value) {
+    return new Date(0);
+  }
+
+  // Firebase Timestamp
+  if (typeof value.toDate === "function") {
+    return value.toDate();
+  }
+
+  // JavaScript Date
+  if (value instanceof Date) {
+    return value;
+  }
+
+  // Firestore timestamp-like object
+  if (
+    typeof value === "object" &&
+    typeof value.seconds === "number"
+  ) {
+    return new Date(value.seconds * 1000);
+  }
+
+  // Number timestamp
+  if (typeof value === "number") {
+
+    const date = new Date(value);
+
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
+  // String date
+  if (typeof value === "string") {
+
+    const date = new Date(value);
+
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
+  return new Date(0);
 }
-
 
 /* =========================================================
    CONDITION
-   ========================================================= */
+========================================================= */
 
 function extractCondition(result) {
 
@@ -125,74 +145,63 @@ function extractCondition(result) {
 
   const text = String(result);
 
-
-  const match = text.match(
-    /(?:Possible Condition|Condition)\s*[:\-]?\s*([^\n]+)/i
+  const possibleConditionMatch = text.match(
+    /(?:Possible Condition|Possible Conditions|Condition)\s*[:\-]?\s*([^\n]+)/i
   );
 
+  if (possibleConditionMatch?.[1]) {
 
-  if (match?.[1]) {
-
-    return match[1]
+    return possibleConditionMatch[1]
       .replace(/\*\*/g, "")
       .replace(/^[-•]\s*/, "")
       .trim();
-
   }
 
+  const lines = text
+    .split("\n")
+    .map(line =>
+      line
+        .replace(/\*\*/g, "")
+        .replace(/^[-•]\s*/, "")
+        .trim()
+    )
+    .filter(Boolean);
 
-  const line =
-    text
-      .split("\n")
-      .map(value =>
-        value
-          .replace(/\*/g, "")
-          .trim()
-      )
-      .find(Boolean);
-
-
-  return line || "AI Analysis";
-
+  return lines[0] || "AI Analysis";
 }
-
 
 /* =========================================================
    PATIENT NAME
-   ========================================================= */
+========================================================= */
 
 function getPatientName(report) {
 
   const isAnimal =
-    String(
-      report.type || ""
-    ).toLowerCase() === "animal";
-
+    String(report?.type || "")
+      .toLowerCase() === "animal";
 
   if (isAnimal) {
 
     return (
       report.breed ||
       report.animalType ||
+      report.animal_type ||
       "Animal"
     );
-
   }
-
 
   return (
     report.consultationData?.Name ||
     report.consultationData?.name ||
     report.fullName ||
+    report.name ||
     "User"
   );
-
 }
-
 
 /* =========================================================
    LOAD CONSULTATIONS
-   ========================================================= */
+========================================================= */
 
 async function loadConsultations(uid) {
 
@@ -203,42 +212,30 @@ async function loadConsultations(uid) {
       uid
     );
 
-
-    const snapshot =
-      await getDocs(
-        collection(
-          db,
-          "users",
-          uid,
-          "consultations"
-        )
-      );
-
+    const snapshot = await getDocs(
+      collection(
+        db,
+        "users",
+        uid,
+        "consultations"
+      )
+    );
 
     allReports = [];
 
+    snapshot.forEach(docSnapshot => {
 
-    snapshot.forEach(
-      (docSnapshot) => {
+      allReports.push({
+        id: docSnapshot.id,
+        ...docSnapshot.data()
+      });
 
-        allReports.push({
-
-          id:
-            docSnapshot.id,
-
-          ...docSnapshot.data()
-
-        });
-
-      }
-    );
-
+    });
 
     console.log(
       "Consultations loaded:",
       allReports.length
     );
-
 
     allReports.sort(
       (a, b) =>
@@ -246,19 +243,16 @@ async function loadConsultations(uid) {
         getReportDate(a)
     );
 
-
     totalConsultations.textContent =
       allReports.length;
 
-
     currentPage = 1;
-
 
     applyFilters();
 
-
     /*
-      Dashboard → History → Specific Report
+      If another page sent a selected report ID,
+      automatically open that report.
     */
 
     const selectedReportId =
@@ -266,39 +260,29 @@ async function loadConsultations(uid) {
         "mediscan_selected_report_id"
       );
 
-
     if (selectedReportId) {
 
       const selectedReport =
         allReports.find(
           report =>
-            report.id ===
-            selectedReportId
+            report.id === selectedReportId
         );
-
 
       if (selectedReport) {
 
-        setTimeout(
-          () => {
+        setTimeout(() => {
 
-            viewReport(
-              selectedReportId
-            );
+          viewReport(
+            selectedReportId
+          );
 
-          },
-          200
-        );
-
+        }, 200);
       }
-
 
       sessionStorage.removeItem(
         "mediscan_selected_report_id"
       );
-
     }
-
 
   } catch (error) {
 
@@ -307,11 +291,8 @@ async function loadConsultations(uid) {
       error
     );
 
-
     tableBody.innerHTML = `
-
       <tr>
-
         <td
           colspan="6"
           style="
@@ -320,44 +301,34 @@ async function loadConsultations(uid) {
             color:#e15b5b;
           "
         >
-
           Unable to load your
           consultation history.
 
           <br><br>
 
           ${escapeHtml(error.message)}
-
         </td>
-
       </tr>
-
     `;
 
-
-    totalConsultations.textContent =
-      "0";
+    totalConsultations.textContent = "0";
 
     updateResultsNote(0);
-
   }
-
 }
-
 
 /* =========================================================
    FIREBASE AUTH
-   ========================================================= */
+========================================================= */
 
 onAuthStateChanged(
   auth,
-  async (user) => {
+  async user => {
 
     console.log(
       "HISTORY AUTH USER:",
       user
     );
-
 
     if (!user) {
 
@@ -365,11 +336,8 @@ onAuthStateChanged(
         "NO FIREBASE USER ON HISTORY PAGE"
       );
 
-
       tableBody.innerHTML = `
-
         <tr>
-
           <td
             colspan="6"
             style="
@@ -378,110 +346,82 @@ onAuthStateChanged(
               color:#5b6b8c;
             "
           >
-
             Please log in to view
             your consultation history.
-
           </td>
-
         </tr>
-
       `;
 
-
-      totalConsultations.textContent =
-        "0";
-
+      totalConsultations.textContent = "0";
 
       updateResultsNote(0);
 
-
       return;
-
     }
-
 
     console.log(
       "HISTORY EMAIL:",
       user.email
     );
 
-
     console.log(
       "HISTORY UID:",
       user.uid
     );
 
-
     await loadConsultations(
       user.uid
     );
-
   }
 );
 
-
 /* =========================================================
-   CREATE ROW
-   ========================================================= */
+   CREATE TABLE ROW
+========================================================= */
 
 function createRow(report) {
 
   const isAnimal =
-    String(
-      report.type || "Human"
-    ).toLowerCase() ===
-    "animal";
-
+    String(report.type || "human")
+      .toLowerCase() === "animal";
 
   const typeClass =
-    isAnimal
-      ? "animal"
-      : "human";
-
+    isAnimal ? "animal" : "human";
 
   const date =
     getReportDate(report);
 
-
   const validDate =
     date.getTime() > 0;
 
+  const dateText = validDate
+    ? date.toLocaleDateString(
+        "en-US",
+        {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        }
+      )
+    : "—";
 
-  const dateText =
-    validDate
-      ? date.toLocaleDateString(
-          "en-US",
-          {
-            year: "numeric",
-            month: "short",
-            day: "numeric"
-          }
-        )
-      : "—";
-
-
-  const timeText =
-    validDate
-      ? date.toLocaleTimeString(
-          "en-US",
-          {
-            hour: "numeric",
-            minute: "2-digit"
-          }
-        )
-      : "";
-
+  const timeText = validDate
+    ? date.toLocaleTimeString(
+        "en-US",
+        {
+          hour: "numeric",
+          minute: "2-digit"
+        }
+      )
+    : "";
 
   const patientName =
     getPatientName(report);
-
 
   const condition =
     extractCondition(
       report.aiResult
     );
-
 
   const status =
     String(
@@ -489,22 +429,16 @@ function createRow(report) {
       "Completed"
     );
 
-
   const statusClass =
     status.toLowerCase() ===
     "completed"
       ? "completed"
       : "progress";
 
-
   const reportId =
-    escapeHtml(
-      report.id
-    );
-
+    escapeHtml(report.id);
 
   return `
-
     <tr>
 
       <td class="date-cell">
@@ -519,21 +453,13 @@ function createRow(report) {
 
       </td>
 
-
       <td>
 
         <div class="patient-cell">
 
           <div class="p-avatar ${typeClass}">
-
-            ${
-              isAnimal
-                ? "🐾"
-                : "👤"
-            }
-
+            ${isAnimal ? "🐾" : "👤"}
           </div>
-
 
           <div>
 
@@ -544,7 +470,7 @@ function createRow(report) {
             <span>
               ID:
               ${escapeHtml(
-                report.id.slice(0, 8)
+                String(report.id).slice(0, 8)
               )}
             </span>
 
@@ -554,23 +480,15 @@ function createRow(report) {
 
       </td>
 
-
       <td>
 
         <span
           class="type-chip ${typeClass}"
         >
-
-          ${
-            isAnimal
-              ? "Animal"
-              : "Human"
-          }
-
+          ${isAnimal ? "Animal" : "Human"}
         </span>
 
       </td>
-
 
       <td class="cond-cell">
 
@@ -580,13 +498,11 @@ function createRow(report) {
 
         <span>
           ${escapeHtml(
-            report.symptoms ||
-            ""
+            report.symptoms || ""
           )}
         </span>
 
       </td>
-
 
       <td>
 
@@ -602,7 +518,6 @@ function createRow(report) {
 
       </td>
 
-
       <td>
 
         <div class="action-btns">
@@ -611,24 +526,25 @@ function createRow(report) {
             class="a-btn view"
             data-id="${reportId}"
             title="View"
+            type="button"
           >
             👁️
           </button>
-
 
           <button
             class="a-btn download"
             data-id="${reportId}"
             title="Download"
+            type="button"
           >
             ⬇️
           </button>
-
 
           <button
             class="a-btn delete"
             data-id="${reportId}"
             title="Delete"
+            type="button"
           >
             🗑️
           </button>
@@ -638,25 +554,218 @@ function createRow(report) {
       </td>
 
     </tr>
-
   `;
-
 }
 
+/* =========================================================
+   APPLY FILTERS
+========================================================= */
+
+function applyFilters() {
+
+  const query =
+    searchInput.value
+      .trim()
+      .toLowerCase();
+
+  const selectedType =
+    typeFilter.value;
+
+  const selectedStatus =
+    statusFilter.value;
+
+  const filtered =
+    allReports.filter(report => {
+
+      const type =
+        String(
+          report.type ||
+          "human"
+        ).toLowerCase();
+
+      const status =
+        String(
+          report.status ||
+          "completed"
+        ).toLowerCase();
+
+      const patient =
+        getPatientName(report);
+
+      const condition =
+        extractCondition(
+          report.aiResult
+        );
+
+      const searchText = `
+        ${patient}
+        ${condition}
+        ${report.symptoms || ""}
+        ${report.type || ""}
+        ${report.animalType || ""}
+        ${report.breed || ""}
+      `.toLowerCase();
+
+      /* SEARCH */
+
+      const matchesSearch =
+        !query ||
+        searchText.includes(query);
+
+      /* TYPE */
+
+      const matchesType =
+        selectedType === "all" ||
+        type === selectedType;
+
+      /* STATUS */
+
+      const matchesStatus =
+        selectedStatus === "all" ||
+        status === selectedStatus;
+
+      /* DATE */
+
+      const reportDate =
+        getReportDate(report);
+
+      let matchesDate = true;
+
+      if (
+        selectedStartDate &&
+        reportDate < selectedStartDate
+      ) {
+        matchesDate = false;
+      }
+
+      if (
+        selectedEndDate &&
+        reportDate > selectedEndDate
+      ) {
+        matchesDate = false;
+      }
+
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesStatus &&
+        matchesDate
+      );
+    });
+
+  currentPage = 1;
+
+  renderReports(filtered);
+}
+
+/* =========================================================
+   DATE INPUT HANDLING
+========================================================= */
+
+function updateDateFilter() {
+
+  const start =
+    startDateInput.value;
+
+  const end =
+    endDateInput.value;
+
+  /*
+    No dates selected
+  */
+
+  if (!start && !end) {
+
+    selectedStartDate = null;
+    selectedEndDate = null;
+
+    applyFilters();
+
+    return;
+  }
+
+  /*
+    Check invalid range
+  */
+
+  if (
+    start &&
+    end &&
+    start > end
+  ) {
+
+    alert(
+      "Start date cannot be after end date."
+    );
+
+    if (
+      document.activeElement ===
+      startDateInput
+    ) {
+      startDateInput.value = "";
+    } else {
+      endDateInput.value = "";
+    }
+
+    selectedStartDate = null;
+    selectedEndDate = null;
+
+    applyFilters();
+
+    return;
+  }
+
+  /*
+    Start date
+  */
+
+  selectedStartDate =
+    start
+      ? new Date(
+          start + "T00:00:00"
+        )
+      : null;
+
+  /*
+    End date
+  */
+
+  selectedEndDate =
+    end
+      ? new Date(
+          end + "T23:59:59"
+        )
+      : null;
+
+  currentPage = 1;
+
+  applyFilters();
+}
+
+/* =========================================================
+   DATE EVENTS
+========================================================= */
+
+startDateInput.addEventListener(
+  "change",
+  updateDateFilter
+);
+
+endDateInput.addEventListener(
+  "change",
+  updateDateFilter
+);
 
 /* =========================================================
    RENDER REPORTS
-   ========================================================= */
+========================================================= */
 
 function renderReports(reports) {
 
-  filteredReports =
-    reports;
-
+  filteredReports = reports;
 
   const total =
     reports.length;
-
 
   const pages =
     Math.max(
@@ -666,23 +775,13 @@ function renderReports(reports) {
       )
     );
 
-
-  if (
-    currentPage >
-    pages
-  ) {
-
-    currentPage =
-      pages;
-
+  if (currentPage > pages) {
+    currentPage = pages;
   }
 
-
   const start =
-    (
-      currentPage - 1
-    ) * pageSize;
-
+    (currentPage - 1) *
+    pageSize;
 
   const pageReports =
     reports.slice(
@@ -690,13 +789,10 @@ function renderReports(reports) {
       start + pageSize
     );
 
-
   if (!pageReports.length) {
 
     tableBody.innerHTML = `
-
       <tr>
-
         <td
           colspan="6"
           style="
@@ -720,15 +816,15 @@ function renderReports(reports) {
           </strong>
 
           <div
-            style="margin-top:6px;"
+            style="
+              margin-top:6px;
+            "
           >
             Try changing your filters.
           </div>
 
         </td>
-
       </tr>
-
     `;
 
   } else {
@@ -737,38 +833,54 @@ function renderReports(reports) {
       pageReports
         .map(createRow)
         .join("");
-
   }
 
+  updateResultsNote(total);
 
-  updateResultsNote(
-    total
-  );
-
-
-  renderPagination(
-    total
-  );
-
+  renderPagination(total);
 }
 
+/* =========================================================
+   RESULTS NOTE
+========================================================= */
+
+function updateResultsNote(total) {
+
+  if (!resultsNote) {
+    return;
+  }
+
+  if (total === 0) {
+
+    resultsNote.textContent =
+      "Showing 0 results";
+
+    return;
+  }
+
+  const start =
+    (currentPage - 1) *
+    pageSize + 1;
+
+  const end =
+    Math.min(
+      currentPage * pageSize,
+      total
+    );
+
+  resultsNote.textContent =
+    `Showing ${start} to ${end} of ${total} results`;
+}
 
 /* =========================================================
    PAGINATION
-   ========================================================= */
+========================================================= */
 
 function renderPagination(total) {
-
-  const pagination =
-    document.querySelector(
-      ".pagination"
-    );
-
 
   if (!pagination) {
     return;
   }
-
 
   const pages =
     Math.max(
@@ -778,30 +890,24 @@ function renderPagination(total) {
       )
     );
 
-
   currentPage =
     Math.min(
       currentPage,
       pages
     );
 
-
   let html = `
-
     <button
       class="page-btn"
       data-page="prev"
       ${currentPage === 1 ? "disabled" : ""}
+      type="button"
     >
       ‹ Previous
     </button>
-
   `;
 
-
-  const maxButtons =
-    7;
-
+  const maxButtons = 7;
 
   if (pages <= maxButtons) {
 
@@ -812,7 +918,6 @@ function renderPagination(total) {
     ) {
 
       html += `
-
         <button
           class="page-btn ${
             i === currentPage
@@ -820,12 +925,11 @@ function renderPagination(total) {
               : ""
           }"
           data-page="${i}"
+          type="button"
         >
           ${i}
         </button>
-
       `;
-
     }
 
   } else {
@@ -837,94 +941,62 @@ function renderPagination(total) {
         pages
       ]);
 
-
-    if (
-      currentPage > 2
-    ) {
-
+    if (currentPage > 2) {
       set.add(
         currentPage - 1
       );
-
     }
 
-
-    if (
-      currentPage <
-      pages - 1
-    ) {
-
+    if (currentPage < pages - 1) {
       set.add(
         currentPage + 1
       );
-
     }
-
 
     const nums =
       [...set].sort(
-        (a, b) =>
-          a - b
+        (a, b) => a - b
       );
 
+    let previous = 0;
 
-    let previous =
-      0;
-
-
-    for (
-      const number
-      of nums
-    ) {
+    for (const number of nums) {
 
       if (
         previous &&
-        number -
-          previous >
-          1
+        number - previous > 1
       ) {
 
         html += `
-
           <button
             class="page-btn"
             disabled
+            type="button"
           >
             ...
           </button>
-
         `;
-
       }
 
-
       html += `
-
         <button
           class="page-btn ${
-            number ===
-            currentPage
+            number === currentPage
               ? "active"
               : ""
           }"
           data-page="${number}"
+          type="button"
         >
           ${number}
         </button>
-
       `;
 
-
-      previous =
-        number;
-
+      previous = number;
     }
-
   }
 
-
   html += `
-
     <button
       class="page-btn"
       data-page="next"
@@ -933,575 +1005,155 @@ function renderPagination(total) {
           ? "disabled"
           : ""
       }
+      type="button"
     >
       Next ›
     </button>
-
   `;
 
-
-  pagination.innerHTML =
-    html;
-
+  pagination.innerHTML = html;
 }
 
-
 /* =========================================================
-   RESULTS NOTE
-   ========================================================= */
-
-function updateResultsNote(
-  total
-) {
-
-  if (!resultsNote) {
-    return;
-  }
-
-
-  if (total === 0) {
-
-    resultsNote.textContent =
-      "Showing 0 results";
-
-    return;
-
-  }
-
-
-  const start =
-    (
-      currentPage - 1
-    ) * pageSize + 1;
-
-
-  const end =
-    Math.min(
-      currentPage * pageSize,
-      total
-    );
-
-
-  resultsNote.textContent =
-    `Showing ${start} to ${end} of ${total} results`;
-
-}
-
-
-/* =========================================================
-   FILTERS
-   ========================================================= */
-
-function applyFilters() {
-
-  const query =
-    searchInput.value
-      .trim()
-      .toLowerCase();
-
-
-  const selectedType =
-    typeFilter.value;
-
-
-  const selectedStatus =
-    statusFilter.value;
-
-
-  const filtered =
-    allReports.filter(
-      (report) => {
-
-        const type =
-          String(
-            report.type ||
-            "human"
-          ).toLowerCase();
-
-
-        const status =
-          String(
-            report.status ||
-            "completed"
-          ).toLowerCase();
-
-
-        const patient =
-          getPatientName(
-            report
-          );
-
-
-        const condition =
-          extractCondition(
-            report.aiResult
-          );
-
-
-        const searchText =
-          `
-            ${patient}
-            ${condition}
-            ${report.symptoms || ""}
-            ${report.type || ""}
-          `
-            .toLowerCase();
-
-
-        const matchesSearch =
-          !query ||
-          searchText.includes(
-            query
-          );
-
-
-        const matchesType =
-          selectedType ===
-            "all" ||
-          type ===
-            selectedType;
-
-
-        const matchesStatus =
-          selectedStatus ===
-            "all" ||
-          status ===
-            selectedStatus;
-
-
-        /*
-          DATE RANGE FILTER
-        */
-
-        const reportDate =
-          getReportDate(
-            report
-          );
-
-
-        let matchesDate =
-          true;
-
-
-        if (
-          selectedStartDate &&
-          reportDate <
-            selectedStartDate
-        ) {
-
-          matchesDate =
-            false;
-
-        }
-
-
-        if (
-          selectedEndDate &&
-          reportDate >
-            selectedEndDate
-        ) {
-
-          matchesDate =
-            false;
-
-        }
-
-
-        return (
-
-          matchesSearch &&
-
-          matchesType &&
-
-          matchesStatus &&
-
-          matchesDate
-
-        );
-
-      }
-    );
-
-
-  currentPage =
-    1;
-
-
-  renderReports(
-    filtered
-  );
-
-}
-
-
-/* =========================================================
-   DATE RANGE PICKER
-   ========================================================= */
-
-if (
-  dateRangeBtn &&
-  datePicker
-) {
-
-
-  /* ---------------------------------------------
-     OPEN / CLOSE
-     --------------------------------------------- */
-
-  dateRangeBtn.addEventListener(
-    "click",
-    (event) => {
-
-      event.stopPropagation();
-
-      datePicker.classList.toggle(
-        "show"
+   PAGINATION EVENTS
+========================================================= */
+
+pagination.addEventListener(
+  "click",
+  event => {
+
+    const button =
+      event.target.closest(
+        ".page-btn"
       );
 
+    if (
+      !button ||
+      button.disabled
+    ) {
+      return;
     }
-  );
 
+    const action =
+      button.dataset.page;
 
-  /* ---------------------------------------------
-     PREVENT CLOSE INSIDE
-     --------------------------------------------- */
-
-  datePicker.addEventListener(
-    "click",
-    (event) => {
-
-      event.stopPropagation();
-
-    }
-  );
-
-
-  /* ---------------------------------------------
-     CLOSE OUTSIDE
-     --------------------------------------------- */
-
-  document.addEventListener(
-    "click",
-    () => {
-
-      datePicker.classList.remove(
-        "show"
+    const pages =
+      Math.max(
+        1,
+        Math.ceil(
+          filteredReports.length /
+          pageSize
+        )
       );
 
-    }
-  );
+    if (action === "prev") {
 
-
-  /* ---------------------------------------------
-     APPLY
-     --------------------------------------------- */
-
-  if (applyDateBtn) {
-
-    applyDateBtn.addEventListener(
-      "click",
-      () => {
-
-        const start =
-          startDateInput?.value ||
-          "";
-
-        const end =
-          endDateInput?.value ||
-          "";
-
-
-        if (
-          start &&
-          end &&
-          new Date(start) >
-            new Date(end)
-        ) {
-
-          alert(
-            "Start date cannot be after end date."
-          );
-
-          return;
-
-        }
-
-
-        selectedStartDate =
-          start
-            ? new Date(
-                start +
-                "T00:00:00"
-              )
-            : null;
-
-
-        selectedEndDate =
-          end
-            ? new Date(
-                end +
-                "T23:59:59"
-              )
-            : null;
-
-
-        if (
-          start &&
-          end
-        ) {
-
-          dateRangeText.textContent =
-            formatDate(start) +
-            " – " +
-            formatDate(end);
-
-        }
-
-        else if (start) {
-
-          dateRangeText.textContent =
-            "From " +
-            formatDate(start);
-
-        }
-
-        else if (end) {
-
-          dateRangeText.textContent =
-            "Until " +
-            formatDate(end);
-
-        }
-
-        else {
-
-          dateRangeText.textContent =
-            "Select Date Range";
-
-        }
-
-
-        currentPage =
-          1;
-
-
-        applyFilters();
-
-
-        datePicker.classList.remove(
-          "show"
+      currentPage =
+        Math.max(
+          1,
+          currentPage - 1
         );
 
-      }
-    );
+    } else if (action === "next") {
 
-  }
-
-
-  /* ---------------------------------------------
-     CLEAR DATE
-     --------------------------------------------- */
-
-  if (clearDateBtn) {
-
-    clearDateBtn.addEventListener(
-      "click",
-      () => {
-
-        if (startDateInput) {
-          startDateInput.value = "";
-        }
-
-
-        if (endDateInput) {
-          endDateInput.value = "";
-        }
-
-
-        selectedStartDate =
-          null;
-
-
-        selectedEndDate =
-          null;
-
-
-        if (dateRangeText) {
-
-          dateRangeText.textContent =
-            "Select Date Range";
-
-        }
-
-
-        currentPage =
-          1;
-
-
-        applyFilters();
-
-
-        datePicker.classList.remove(
-          "show"
+      currentPage =
+        Math.min(
+          pages,
+          currentPage + 1
         );
 
-      }
-    );
+    } else if (
+      action &&
+      !Number.isNaN(
+        Number(action)
+      )
+    ) {
 
-  }
-
-}
-
-
-/* =========================================================
-   FORMAT DATE
-   ========================================================= */
-
-function formatDate(
-  dateString
-) {
-
-  const date =
-    new Date(
-      dateString +
-      "T00:00:00"
-    );
-
-
-  if (
-    isNaN(
-      date.getTime()
-    )
-  ) {
-
-    return dateString;
-
-  }
-
-
-  return date.toLocaleDateString(
-    "en-US",
-    {
-      month: "short",
-      day: "numeric",
-      year: "numeric"
+      currentPage =
+        Number(action);
     }
-  );
 
-}
-
+    renderReports(
+      filteredReports
+    );
+  }
+);
 
 /* =========================================================
    RESET
-   ========================================================= */
+========================================================= */
 
 resetBtn.addEventListener(
   "click",
-  async () => {
+  () => {
 
-    searchInput.value =
-      "";
+    searchInput.value = "";
 
+    typeFilter.value = "all";
 
-    typeFilter.value =
-      "all";
+    statusFilter.value = "all";
 
+    startDateInput.value = "";
 
-    statusFilter.value =
-      "all";
+    endDateInput.value = "";
 
+    selectedStartDate = null;
 
-    selectedStartDate =
-      null;
+    selectedEndDate = null;
 
-
-    selectedEndDate =
-      null;
-
-
-    if (startDateInput) {
-      startDateInput.value =
-        "";
-    }
-
-
-    if (endDateInput) {
-      endDateInput.value =
-        "";
-    }
-
-
-    if (dateRangeText) {
-
-      dateRangeText.textContent =
-        "Select Date Range";
-
-    }
-
-
-    if (datePicker) {
-
-      datePicker.classList.remove(
-        "show"
-      );
-
-    }
-
-
-    currentPage =
-      1;
-
+    currentPage = 1;
 
     applyFilters();
-
   }
 );
 
-
 /* =========================================================
-   SEARCH / FILTER EVENTS
-   ========================================================= */
+   SEARCH / TYPE / STATUS
+========================================================= */
 
 searchInput.addEventListener(
   "input",
-  applyFilters
+  () => {
+    currentPage = 1;
+    applyFilters();
+  }
 );
-
 
 typeFilter.addEventListener(
   "change",
-  applyFilters
+  () => {
+    currentPage = 1;
+    applyFilters();
+  }
 );
-
 
 statusFilter.addEventListener(
   "change",
-  applyFilters
+  () => {
+    currentPage = 1;
+    applyFilters();
+  }
 );
-
 
 /* =========================================================
    TABLE BUTTONS
-   ========================================================= */
+========================================================= */
 
 tableBody.addEventListener(
   "click",
-  async (event) => {
+  async event => {
 
     const button =
       event.target.closest(
         ".a-btn"
       );
 
-
     if (!button) {
       return;
     }
 
-
     const reportId =
       button.dataset.id;
-
 
     if (
       button.classList.contains(
@@ -1509,14 +1161,9 @@ tableBody.addEventListener(
       )
     ) {
 
-      viewReport(
-        reportId
-      );
+      viewReport(reportId);
 
-    }
-
-
-    else if (
+    } else if (
       button.classList.contains(
         "download"
       )
@@ -1526,10 +1173,7 @@ tableBody.addEventListener(
         reportId
       );
 
-    }
-
-
-    else if (
+    } else if (
       button.classList.contains(
         "delete"
       )
@@ -1538,125 +1182,21 @@ tableBody.addEventListener(
       await deleteReport(
         reportId
       );
-
     }
-
   }
 );
 
-
 /* =========================================================
-   PAGINATION EVENTS
-   ========================================================= */
+   VIEW REPORT
+========================================================= */
 
-const pagination =
-  document.querySelector(
-    ".pagination"
-  );
-
-
-if (pagination) {
-
-  pagination.addEventListener(
-    "click",
-    (event) => {
-
-      const button =
-        event.target.closest(
-          ".page-btn"
-        );
-
-
-      if (
-        !button ||
-        button.disabled
-      ) {
-
-        return;
-
-      }
-
-
-      const action =
-        button.dataset.page;
-
-
-      const pages =
-        Math.max(
-          1,
-          Math.ceil(
-            filteredReports.length /
-            pageSize
-          )
-        );
-
-
-      if (
-        action ===
-        "prev"
-      ) {
-
-        currentPage =
-          Math.max(
-            1,
-            currentPage - 1
-          );
-
-      }
-
-
-      else if (
-        action ===
-        "next"
-      ) {
-
-        currentPage =
-          Math.min(
-            pages,
-            currentPage + 1
-          );
-
-      }
-
-
-      else if (
-        action &&
-        !Number.isNaN(
-          Number(action)
-        )
-      ) {
-
-        currentPage =
-          Number(action);
-
-      }
-
-
-      renderReports(
-        filteredReports
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   VIEW
-   ========================================================= */
-
-function viewReport(
-  reportId
-) {
+function viewReport(reportId) {
 
   const report =
     allReports.find(
       item =>
-        item.id ===
-        reportId
+        item.id === reportId
     );
-
 
   if (!report) {
 
@@ -1665,30 +1205,21 @@ function viewReport(
     );
 
     return;
-
   }
 
-
-  showReportModal(
-    report
-  );
-
+  showReportModal(report);
 }
-
 
 /* =========================================================
    SHOW REPORT MODAL
-   ========================================================= */
+========================================================= */
 
-function showReportModal(
-  report
-) {
+function showReportModal(report) {
 
   let modal =
     document.getElementById(
       "reportViewModal"
     );
-
 
   if (!modal) {
 
@@ -1697,13 +1228,10 @@ function showReportModal(
         "div"
       );
 
-
     modal.id =
       "reportViewModal";
 
-
     modal.innerHTML = `
-
       <div
         id="reportModalOverlay"
         style="
@@ -1744,9 +1272,9 @@ function showReportModal(
               Consultation Report
             </h2>
 
-
             <button
               id="closeReportModal"
+              type="button"
               style="
                 border:none;
                 background:#f1f3f8;
@@ -1762,11 +1290,7 @@ function showReportModal(
 
           </div>
 
-
-          <div
-            id="reportModalContent"
-          ></div>
-
+          <div id="reportModalContent"></div>
 
           <div
             style="
@@ -1779,6 +1303,7 @@ function showReportModal(
 
             <button
               id="modalDownloadBtn"
+              type="button"
               style="
                 border:1px solid #3cb897;
                 color:#278866;
@@ -1792,9 +1317,9 @@ function showReportModal(
               ⬇️ Download
             </button>
 
-
             <button
               id="modalDeleteBtn"
+              type="button"
               style="
                 border:1px solid #e15b5b;
                 color:#c94b4b;
@@ -1813,14 +1338,9 @@ function showReportModal(
         </div>
 
       </div>
-
     `;
 
-
-    document.body.appendChild(
-      modal
-    );
-
+    document.body.appendChild(modal);
 
     document
       .getElementById(
@@ -1831,14 +1351,13 @@ function showReportModal(
         closeReportModal
       );
 
-
     document
       .getElementById(
         "reportModalOverlay"
       )
       .addEventListener(
         "click",
-        (event) => {
+        event => {
 
           if (
             event.target.id ===
@@ -1846,12 +1365,9 @@ function showReportModal(
           ) {
 
             closeReportModal();
-
           }
-
         }
       );
-
 
     document
       .getElementById(
@@ -1864,10 +1380,8 @@ function showReportModal(
           downloadReport(
             modal.dataset.reportId
           );
-
         }
       );
-
 
     document
       .getElementById(
@@ -1880,39 +1394,27 @@ function showReportModal(
           deleteReport(
             modal.dataset.reportId
           );
-
         }
       );
-
   }
-
 
   modal.dataset.reportId =
     report.id;
-
 
   const type =
     report.type ||
     "Human";
 
-
   const date =
-    getReportDate(
-      report
-    );
-
+    getReportDate(report);
 
   const patientName =
-    getPatientName(
-      report
-    );
-
+    getPatientName(report);
 
   document.getElementById(
     "reportModalTitle"
   ).textContent =
     `${type} Consultation`;
-
 
   document.getElementById(
     "reportModalContent"
@@ -1934,7 +1436,6 @@ function showReportModal(
           border-radius:10px;
         "
       >
-
         <div
           style="
             font-size:11px;
@@ -1947,9 +1448,7 @@ function showReportModal(
         <strong>
           ${escapeHtml(patientName)}
         </strong>
-
       </div>
-
 
       <div
         style="
@@ -1958,7 +1457,6 @@ function showReportModal(
           border-radius:10px;
         "
       >
-
         <div
           style="
             font-size:11px;
@@ -1977,9 +1475,7 @@ function showReportModal(
               : "—"
           }
         </strong>
-
       </div>
-
 
       <div
         style="
@@ -1988,7 +1484,6 @@ function showReportModal(
           border-radius:10px;
         "
       >
-
         <div
           style="
             font-size:11px;
@@ -2001,9 +1496,7 @@ function showReportModal(
         <strong>
           ${escapeHtml(type)}
         </strong>
-
       </div>
-
 
       <div
         style="
@@ -2012,7 +1505,6 @@ function showReportModal(
           border-radius:10px;
         "
       >
-
         <div
           style="
             font-size:11px;
@@ -2028,11 +1520,9 @@ function showReportModal(
             "Completed"
           )}
         </strong>
-
       </div>
 
     </div>
-
 
     <h3
       style="
@@ -2042,7 +1532,6 @@ function showReportModal(
     >
       Symptoms
     </h3>
-
 
     <div
       style="
@@ -2059,7 +1548,6 @@ function showReportModal(
       )}
     </div>
 
-
     <h3
       style="
         font-size:14px;
@@ -2068,7 +1556,6 @@ function showReportModal(
     >
       AI Analysis
     </h3>
-
 
     <div
       style="
@@ -2086,19 +1573,14 @@ function showReportModal(
         "No AI result available."
       )}
     </div>
-
   `;
 
-
-  modal.style.display =
-    "block";
-
+  modal.style.display = "block";
 }
-
 
 /* =========================================================
    CLOSE MODAL
-   ========================================================= */
+========================================================= */
 
 function closeReportModal() {
 
@@ -2107,20 +1589,15 @@ function closeReportModal() {
       "reportViewModal"
     );
 
-
   if (modal) {
-
     modal.style.display =
       "none";
-
   }
-
 }
 
-
 /* =========================================================
-   DOWNLOAD
-   ========================================================= */
+   DOWNLOAD REPORT
+========================================================= */
 
 async function downloadReport(
   reportId
@@ -2129,10 +1606,8 @@ async function downloadReport(
   const report =
     allReports.find(
       item =>
-        item.id ===
-        reportId
+        item.id === reportId
     );
-
 
   if (!report) {
 
@@ -2141,26 +1616,17 @@ async function downloadReport(
     );
 
     return;
-
   }
 
-
   const date =
-    getReportDate(
-      report
-    );
-
+    getReportDate(report);
 
   const type =
     report.type ||
     "Human";
 
-
   const patientName =
-    getPatientName(
-      report
-    );
-
+    getPatientName(report);
 
   const printWindow =
     window.open(
@@ -2169,7 +1635,6 @@ async function downloadReport(
       "width=900,height=700"
     );
 
-
   if (!printWindow) {
 
     alert(
@@ -2177,12 +1642,9 @@ async function downloadReport(
     );
 
     return;
-
   }
 
-
   printWindow.document.write(`
-
     <!DOCTYPE html>
 
     <html>
@@ -2192,7 +1654,6 @@ async function downloadReport(
       <title>
         MediScan AI Report
       </title>
-
 
       <style>
 
@@ -2229,21 +1690,16 @@ async function downloadReport(
 
     </head>
 
-
     <body>
 
       <h1>
         MediScan AI
       </h1>
 
-
       <div class="sub">
-
         ${escapeHtml(type)}
         Consultation Report
-
       </div>
-
 
       <div class="box">
 
@@ -2257,7 +1713,6 @@ async function downloadReport(
 
       </div>
 
-
       <div class="box">
 
         <div class="label">
@@ -2266,13 +1721,11 @@ async function downloadReport(
 
         <strong>
           ${escapeHtml(
-            report.email ||
-            ""
+            report.email || ""
           )}
         </strong>
 
       </div>
-
 
       <div class="box">
 
@@ -2281,7 +1734,6 @@ async function downloadReport(
         </div>
 
         <strong>
-
           ${
             date.getTime()
               ? escapeHtml(
@@ -2289,11 +1741,9 @@ async function downloadReport(
                 )
               : ""
           }
-
         </strong>
 
       </div>
-
 
       <div class="box">
 
@@ -2308,25 +1758,20 @@ async function downloadReport(
 
       </div>
 
-
       <div class="box">
 
         <div class="label">
           AI Analysis
         </div>
 
-
         <div class="ai">
-
           ${escapeHtml(
             report.aiResult ||
             "No AI analysis available."
           )}
-
         </div>
 
       </div>
-
 
       <div
         style="
@@ -2335,47 +1780,33 @@ async function downloadReport(
           color:#777;
         "
       >
-
         This report is for informational purposes only
         and is not a medical diagnosis.
-
       </div>
-
 
     </body>
 
     </html>
-
   `);
-
 
   printWindow.document.close();
 
-
-  await new Promise(
-    resolve =>
-      setTimeout(
-        resolve,
-        300
-      )
+  await new Promise(resolve =>
+    setTimeout(resolve, 300)
   );
-
 
   printWindow.focus();
 
   printWindow.print();
 
-
   const user =
     auth.currentUser;
-
 
   if (user) {
 
     try {
 
       await updateDoc(
-
         doc(
           db,
           "users",
@@ -2383,18 +1814,13 @@ async function downloadReport(
           "consultations",
           reportId
         ),
-
         {
           downloaded: true,
-          downloadedAt:
-            new Date()
+          downloadedAt: new Date()
         }
-
       );
 
-
-      report.downloaded =
-        true;
+      report.downloaded = true;
 
     } catch (error) {
 
@@ -2402,17 +1828,13 @@ async function downloadReport(
         "Could not record download:",
         error
       );
-
     }
-
   }
-
 }
 
-
 /* =========================================================
-   DELETE
-   ========================================================= */
+   DELETE REPORT
+========================================================= */
 
 async function deleteReport(
   reportId
@@ -2423,15 +1845,12 @@ async function deleteReport(
       "Delete this consultation permanently?"
     );
 
-
   if (!confirmed) {
     return;
   }
 
-
   const user =
     auth.currentUser;
-
 
   if (!user) {
 
@@ -2440,14 +1859,11 @@ async function deleteReport(
     );
 
     return;
-
   }
-
 
   try {
 
     await deleteDoc(
-
       doc(
         db,
         "users",
@@ -2455,37 +1871,28 @@ async function deleteReport(
         "consultations",
         reportId
       )
-
     );
-
 
     allReports =
       allReports.filter(
         report =>
-          report.id !==
-          reportId
+          report.id !== reportId
       );
-
 
     filteredReports =
       filteredReports.filter(
         report =>
-          report.id !==
-          reportId
+          report.id !== reportId
       );
-
 
     totalConsultations.textContent =
       allReports.length;
-
 
     renderReports(
       filteredReports
     );
 
-
     closeReportModal();
-
 
   } catch (error) {
 
@@ -2494,12 +1901,9 @@ async function deleteReport(
       error
     );
 
-
     alert(
       "Unable to delete the consultation.\n\n" +
       error.message
     );
-
   }
-
 }
