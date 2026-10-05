@@ -10,8 +10,7 @@ import os
 import base64
 import requests
 import re
-
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 
 # =========================================================
@@ -39,13 +38,15 @@ NEMOTRON_API_KEY = os.getenv("NEMOTRON_API_KEY")
 
 
 if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY is missing from .env")
+    raise ValueError("GEMINI_API_KEY is missing from environment variables")
+
 
 if not QWEN_API_KEY:
-    raise ValueError("QWEN_API_KEY is missing from .env")
+    raise ValueError("QWEN_API_KEY is missing from environment variables")
+
 
 if not NEMOTRON_API_KEY:
-    raise ValueError("NEMOTRON_API_KEY is missing from .env")
+    raise ValueError("NEMOTRON_API_KEY is missing from environment variables")
 
 
 # =========================================================
@@ -71,11 +72,40 @@ NEMOTRON_MODEL = (
 
 
 # =========================================================
+# OPENROUTER CONFIGURATION
+# =========================================================
+
+OPENROUTER_URL = (
+    "https://openrouter.ai/api/v1/chat/completions"
+)
+
+OPENROUTER_SITE_URL = os.getenv(
+    "OPENROUTER_SITE_URL",
+    "https://medscan-ai-2-eg67.onrender.com"
+)
+
+OPENROUTER_APP_NAME = os.getenv(
+    "OPENROUTER_APP_NAME",
+    "MediScan AI"
+)
+
+
+# =========================================================
+# REQUEST SETTINGS
+# =========================================================
+
+MAX_RETRIES = 3
+
+REQUEST_TIMEOUT = 90
+
+RETRY_DELAY_SECONDS = 4
+
+
+# =========================================================
 # SAFETY INSTRUCTIONS
 # =========================================================
 
 SAFETY_INSTRUCTIONS = """
-
 IMPORTANT SAFETY RULES:
 
 - This system provides preliminary AI-generated health information.
@@ -90,7 +120,120 @@ IMPORTANT SAFETY RULES:
   or veterinarian when appropriate.
 - For potentially serious or emergency situations, advise
   immediate professional medical attention.
+- Never claim that agreement between AI models proves a diagnosis.
 """
+
+
+# =========================================================
+# UTILITY FUNCTIONS
+# =========================================================
+
+def clean_error_message(error_text):
+    """
+    Convert long provider errors into a shorter readable message.
+    """
+
+    if not error_text:
+        return "Unknown error"
+
+    text = str(error_text)
+
+    # Remove excessive whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+
+    # Keep errors reasonably short
+    if len(text) > 1200:
+        text = text[:1200] + "..."
+
+    return text
+
+
+def is_retryable_error(error_text):
+    """
+    Detect temporary provider/API errors where retrying may help.
+    """
+
+    if not error_text:
+        return False
+
+    text = str(error_text).lower()
+
+    retry_keywords = [
+        "429",
+        "502",
+        "503",
+        "504",
+        "rate limit",
+        "rate_limit",
+        "too many requests",
+        "resourceexhausted",
+        "resource exhausted",
+        "temporarily unavailable",
+        "service unavailable",
+        "high demand",
+        "provider_unavailable",
+        "timeout",
+        "timed out",
+        "connection reset",
+        "connection error",
+        "upstream error"
+    ]
+
+    return any(
+        keyword in text
+        for keyword in retry_keywords
+    )
+
+
+def extract_openrouter_text(result_data):
+    """
+    Safely extract text from OpenRouter responses.
+    Supports normal strings and structured content lists.
+    """
+
+    if not isinstance(result_data, dict):
+        return ""
+
+    choices = result_data.get("choices")
+
+    if not choices:
+        return ""
+
+    first_choice = choices[0]
+
+    if not isinstance(first_choice, dict):
+        return ""
+
+    message = first_choice.get("message", {})
+
+    if not isinstance(message, dict):
+        return ""
+
+    content = message.get("content")
+
+    if isinstance(content, str):
+        return content.strip()
+
+    if isinstance(content, list):
+
+        parts = []
+
+        for part in content:
+
+            if isinstance(part, dict):
+
+                text_value = part.get("text")
+
+                if text_value:
+                    parts.append(str(text_value))
+
+            elif isinstance(part, str):
+
+                parts.append(part)
+
+        return "\n".join(parts).strip()
+
+    return ""
 
 
 # =========================================================
@@ -103,43 +246,73 @@ def analyze_with_gemini(
     case_prompt
 ):
 
-    try:
+    last_error = ""
 
-        response = gemini_client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[
-                types.Part.from_bytes(
-                    data=image_bytes,
-                    mime_type=mime_type
-                ),
-                case_prompt
-            ]
-        )
+    for attempt in range(1, MAX_RETRIES + 1):
 
-        result_text = response.text
+        try:
 
-        if not result_text:
-            raise Exception(
-                "Gemini returned no text content."
+            print(
+                f"[Gemini] Attempt {attempt}/{MAX_RETRIES}"
             )
 
-        return {
-            "model": "Gemini",
-            "success": True,
-            "result": result_text
-        }
+            response = gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[
+                    types.Part.from_bytes(
+                        data=image_bytes,
+                        mime_type=mime_type
+                    ),
+                    case_prompt
+                ]
+            )
 
-    except Exception as error:
+            result_text = response.text
 
-        print("GEMINI ERROR:")
-        print(error)
+            if not result_text:
+                raise Exception(
+                    "Gemini returned no text content."
+                )
 
-        return {
-            "model": "Gemini",
-            "success": False,
-            "result": "",
-            "error": str(error)
-        }
+            print(
+                "[Gemini] SUCCESS"
+            )
+
+            return {
+                "model": "Gemini",
+                "success": True,
+                "result": result_text.strip()
+            }
+
+        except Exception as error:
+
+            last_error = clean_error_message(error)
+
+            print(
+                f"[Gemini] ERROR attempt {attempt}:"
+            )
+            print(last_error)
+
+            if attempt < MAX_RETRIES and is_retryable_error(
+                last_error
+            ):
+
+                print(
+                    f"[Gemini] Temporary error. "
+                    f"Retrying in {RETRY_DELAY_SECONDS} seconds..."
+                )
+
+                time.sleep(RETRY_DELAY_SECONDS)
+
+            else:
+                break
+
+    return {
+        "model": "Gemini",
+        "success": False,
+        "result": "",
+        "error": last_error
+    }
 
 
 # =========================================================
@@ -155,183 +328,248 @@ def analyze_with_openrouter(
     case_prompt
 ):
 
-    try:
+    last_error = ""
 
-        # -------------------------------------------------
-        # Convert image to Base64
-        # -------------------------------------------------
+    # -----------------------------------------------------
+    # Convert image to Base64
+    # -----------------------------------------------------
 
-        image_base64 = base64.b64encode(
-            image_bytes
-        ).decode("utf-8")
+    image_base64 = base64.b64encode(
+        image_bytes
+    ).decode("utf-8")
 
+    image_url = (
+        f"data:{mime_type};base64,{image_base64}"
+    )
 
-        image_url = (
-            f"data:{mime_type};base64,{image_base64}"
-        )
+    # -----------------------------------------------------
+    # Headers
+    # -----------------------------------------------------
 
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": OPENROUTER_SITE_URL,
+        "X-Title": OPENROUTER_APP_NAME
+    }
 
-        # -------------------------------------------------
-        # Headers
-        # -------------------------------------------------
+    # -----------------------------------------------------
+    # Request payload
+    # -----------------------------------------------------
 
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+    payload = {
+        "model": model_name,
 
+        "messages": [
+            {
+                "role": "user",
 
-        # -------------------------------------------------
-        # Request payload
-        # -------------------------------------------------
+                "content": [
+                    {
+                        "type": "text",
+                        "text": case_prompt
+                    },
 
-        payload = {
+                    {
+                        "type": "image_url",
 
-            "model": model_name,
-
-            "messages": [
-
-                {
-                    "role": "user",
-
-                    "content": [
-
-                        {
-                            "type": "text",
-                            "text": case_prompt
-                        },
-
-                        {
-                            "type": "image_url",
-
-                            "image_url": {
-                                "url": image_url
-                            }
+                        "image_url": {
+                            "url": image_url
                         }
+                    }
+                ]
+            }
+        ],
 
-                    ]
+        "temperature": 0.2,
+
+        "max_tokens": 2500,
+
+        # Allow OpenRouter to try another provider
+        # when the first provider is unavailable.
+        "provider": {
+            "allow_fallbacks": True
+        }
+    }
+
+    # -----------------------------------------------------
+    # Retry loop
+    # -----------------------------------------------------
+
+    for attempt in range(1, MAX_RETRIES + 1):
+
+        try:
+
+            print(
+                f"[{model_display_name}] "
+                f"Attempt {attempt}/{MAX_RETRIES}"
+            )
+
+            response = requests.post(
+                OPENROUTER_URL,
+                headers=headers,
+                json=payload,
+                timeout=REQUEST_TIMEOUT
+            )
+
+            # -------------------------------------------------
+            # Read response body before raising errors
+            # -------------------------------------------------
+
+            try:
+
+                result_data = response.json()
+
+            except Exception:
+
+                result_data = {
+                    "raw_response": response.text
                 }
 
-            ]
-        }
+            # -------------------------------------------------
+            # HTTP ERROR
+            # -------------------------------------------------
 
+            if response.status_code >= 400:
 
-        # -------------------------------------------------
-        # Send request
-        # -------------------------------------------------
+                error_message = (
+                    result_data
+                    .get("error", {})
+                    .get("message")
+                    if isinstance(result_data, dict)
+                    else None
+                )
 
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=120
-        )
+                if not error_message:
 
+                    error_message = (
+                        result_data
+                        .get("raw_response", response.text)
+                        if isinstance(result_data, dict)
+                        else response.text
+                    )
 
-        response.raise_for_status()
+                last_error = (
+                    f"HTTP {response.status_code}: "
+                    f"{clean_error_message(error_message)}"
+                )
 
+                print(
+                    f"[{model_display_name}] ERROR:"
+                )
+                print(last_error)
 
-        result_data = response.json()
+                if (
+                    attempt < MAX_RETRIES
+                    and (
+                        response.status_code in [
+                            429,
+                            500,
+                            502,
+                            503,
+                            504
+                        ]
+                        or is_retryable_error(last_error)
+                    )
+                ):
 
+                    print(
+                        f"[{model_display_name}] "
+                        f"Retrying in {RETRY_DELAY_SECONDS} seconds..."
+                    )
 
-        print(
-            f"\n{model_display_name} OPENROUTER RESPONSE:"
-        )
+                    time.sleep(RETRY_DELAY_SECONDS)
 
-        print(result_data)
+                    continue
 
+                break
 
-        # -------------------------------------------------
-        # Validate response
-        # -------------------------------------------------
+            # -------------------------------------------------
+            # Validate response
+            # -------------------------------------------------
 
-        if "choices" not in result_data:
+            if not isinstance(result_data, dict):
 
-            raise Exception(
-                "OpenRouter returned an unexpected response: "
-                f"{result_data}"
+                raise Exception(
+                    "OpenRouter returned an invalid response."
+                )
+
+            if "choices" not in result_data:
+
+                provider_error = result_data.get(
+                    "error",
+                    result_data
+                )
+
+                raise Exception(
+                    "OpenRouter returned no choices: "
+                    + clean_error_message(provider_error)
+                )
+
+            if not result_data["choices"]:
+
+                raise Exception(
+                    "OpenRouter returned an empty choices array."
+                )
+
+            # -------------------------------------------------
+            # Extract response text
+            # -------------------------------------------------
+
+            result_text = extract_openrouter_text(
+                result_data
             )
 
+            if not result_text:
 
-        if not result_data["choices"]:
+                raise Exception(
+                    "Model returned no text content."
+                )
 
-            raise Exception(
-                "OpenRouter returned no choices: "
-                f"{result_data}"
+            print(
+                f"[{model_display_name}] SUCCESS"
             )
 
+            return {
+                "model": model_display_name,
+                "success": True,
+                "result": result_text
+            }
 
-        message = result_data["choices"][0].get(
-            "message",
-            {}
-        )
+        except Exception as error:
 
+            last_error = clean_error_message(error)
 
-        result_text = message.get("content")
-
-
-        # -------------------------------------------------
-        # Some reasoning models can return content
-        # as a list / structured format.
-        # -------------------------------------------------
-
-        if isinstance(result_text, list):
-
-            text_parts = []
-
-            for part in result_text:
-
-                if isinstance(part, dict):
-
-                    text_value = part.get("text")
-
-                    if text_value:
-                        text_parts.append(
-                            str(text_value)
-                        )
-
-                elif isinstance(part, str):
-
-                    text_parts.append(part)
-
-
-            result_text = "\n".join(text_parts)
-
-
-        # -------------------------------------------------
-        # Validate final text
-        # -------------------------------------------------
-
-        if not result_text:
-
-            raise Exception(
-                "Model returned no text content: "
-                f"{result_data}"
+            print(
+                f"[{model_display_name}] "
+                f"ERROR attempt {attempt}:"
             )
 
+            print(last_error)
 
-        return {
-            "model": model_display_name,
-            "success": True,
-            "result": result_text
-        }
+            if (
+                attempt < MAX_RETRIES
+                and is_retryable_error(last_error)
+            ):
 
+                print(
+                    f"[{model_display_name}] "
+                    f"Temporary error. "
+                    f"Retrying in {RETRY_DELAY_SECONDS} seconds..."
+                )
 
-    except Exception as error:
+                time.sleep(RETRY_DELAY_SECONDS)
 
-        print(
-            f"{model_display_name} ERROR:"
-        )
+            else:
 
-        print(error)
+                break
 
-
-        return {
-            "model": model_display_name,
-            "success": False,
-            "result": "",
-            "error": str(error)
-        }
+    return {
+        "model": model_display_name,
+        "success": False,
+        "result": "",
+        "error": last_error
+    }
 
 
 # =========================================================
@@ -340,96 +578,97 @@ def analyze_with_openrouter(
 
 def extract_possible_conditions(text):
 
-    """
-    Demonstration-level extraction.
-
-    This is NOT medical validation.
-
-    It looks for content following headings such as:
-    possible conditions, possible causes, concerns, etc.
-    """
-
     if not text:
         return []
 
-
-    text_lower = text.lower()
-
-
     keywords = [
-
         "possible conditions",
-
+        "possible conditions or causes",
         "possible causes",
-
         "possible concern",
-
         "possible concerns",
-
         "conditions",
-
-        "causes"
-
+        "causes",
+        "abnormalities"
     ]
-
 
     extracted = []
 
-    lines = text.split("\n")
+    lines = text.splitlines()
 
     collecting = False
-
 
     for line in lines:
 
         clean = line.strip()
 
-
         if not clean:
             continue
 
+        # Remove markdown
+        clean = clean.replace("**", "")
+        clean = clean.replace("###", "")
+        clean = clean.replace("##", "")
+        clean = clean.replace("#", "")
+        clean = clean.strip()
 
         lower = clean.lower()
 
-
+        # Find the section
         if any(
             keyword in lower
             for keyword in keywords
         ):
 
             collecting = True
-
             continue
-
 
         if collecting:
 
-            if clean.startswith(
-                (
-                    "1.",
-                    "2.",
-                    "3.",
-                    "4.",
-                    "5.",
-                    "-",
-                    "*"
-                )
+            # Stop at another obvious heading
+            if re.match(
+                r"^\d+\.\s+",
+                clean
             ):
 
-                clean = clean.lstrip(
-                    "0123456789.-* "
-                )
+                heading_words = [
+                    "visible",
+                    "reported",
+                    "evidence",
+                    "reasoning",
+                    "red flags",
+                    "urgency",
+                    "recommended",
+                    "uncertainty"
+                ]
 
+                if any(
+                    word in lower
+                    for word in heading_words
+                ):
 
-                if len(clean) > 3:
+                    break
 
-                    extracted.append(clean)
+            clean = re.sub(
+                r"^[-•*]\s*",
+                "",
+                clean
+            )
 
+            clean = re.sub(
+                r"^\d+[\.\):\-]\s*",
+                "",
+                clean
+            )
 
-            elif len(extracted) >= 3:
+            clean = clean.strip()
 
+            if len(clean) > 3:
+
+                extracted.append(clean)
+
+            if len(extracted) >= 5:
                 break
-
 
     return extracted[:5]
 
@@ -441,50 +680,37 @@ def extract_possible_conditions(text):
 def calculate_textual_agreement(results):
 
     successful_results = [
-
         item
-
         for item in results
-
         if item.get("success") is True
         and item.get("result")
         and str(item.get("result")).strip()
-
     ]
-
 
     if len(successful_results) < 2:
 
         return {
-
             "available": False,
-
             "agreement_level": "Insufficient data",
-
             "message": (
                 "Not enough successful model responses "
                 "to calculate agreement."
             )
-
         }
-
 
     model_conditions = {}
 
-
     for item in successful_results:
-
-        conditions = extract_possible_conditions(
-            item.get("result", "")
-        )
 
         model_conditions[
             item["model"]
-        ] = conditions
+        ] = extract_possible_conditions(
+            item.get("result", "")
+        )
 
+    agreement = {}
 
     all_conditions = []
-
 
     for conditions in model_conditions.values():
 
@@ -494,39 +720,23 @@ def calculate_textual_agreement(results):
                 condition.lower()
             )
 
-
-    agreement = {}
-
-
     for condition in set(all_conditions):
 
         count = 0
 
-
         for conditions in model_conditions.values():
 
-            condition_lower = condition.lower()
-
-
             if any(
-
-                condition_lower in c.lower()
-
-                or
-
-                c.lower() in condition_lower
-
+                condition in c.lower()
+                or c.lower() in condition
                 for c in conditions
-
             ):
 
                 count += 1
 
-
         if count >= 2:
 
             agreement[condition] = count
-
 
     if len(successful_results) == 3:
 
@@ -540,17 +750,11 @@ def calculate_textual_agreement(results):
             "Partial multi-model comparison"
         )
 
-
     return {
-
         "available": True,
-
         "agreement_level": agreement_level,
-
         "model_conditions": model_conditions,
-
         "shared_possible_conditions": agreement
-
     }
 
 
@@ -564,43 +768,29 @@ def build_consensus_report(
 ):
 
     """
-    MediScan rule-based consensus engine.
+    MediScan rule-based multi-model consensus engine.
 
-    It:
+    This engine:
+    - collects successful model outputs
+    - extracts common sections
+    - groups similar findings
+    - preserves red flags
+    - preserves uncertainty
+    - produces one consolidated report
 
-    1. Collects successful model outputs
-    2. Extracts common sections
-    3. Groups similar findings
-    4. Detects repeated findings
-    5. Preserves red flags
-    6. Preserves uncertainty
-    7. Produces ONE consolidated report
-
-    This does NOT determine which AI model is medically correct.
-
-    This is NOT clinical validation.
+    It does NOT determine which model is medically correct.
+    It is NOT clinical validation.
     """
 
-
-    # =====================================================
-    # COLLECT SUCCESSFUL MODELS
-    # =====================================================
-
     successful = [
-
         item
-
         for item in results
-
         if item.get("success") is True
         and item.get("result")
         and str(item.get("result")).strip()
-
     ]
 
-
     total_models = len(successful)
-
 
     # =====================================================
     # NO SUCCESSFUL MODELS
@@ -609,12 +799,14 @@ def build_consensus_report(
     if not successful:
 
         return """
-
 # MEDISCAN AI
 
 ## Consolidated Preliminary Assessment
 
 No usable AI analysis was available for this case.
+
+All configured AI models were temporarily unavailable
+or returned an error.
 
 Please try again later.
 
@@ -623,74 +815,50 @@ Please try again later.
 This system provides preliminary AI-generated
 information and does not replace evaluation by
 a qualified healthcare professional or veterinarian.
-
-""".strip()
-
+        """.strip()
 
     # =====================================================
-    # SECTION NAMES
+    # SECTION ALIASES
     # =====================================================
 
     section_aliases = {
 
         "visible_observations": [
-
             "Visible Observations"
-
         ],
 
         "reported_symptoms": [
-
             "Reported Symptoms"
-
         ],
 
         "possible_conditions": [
-
             "Possible Conditions or Causes",
-
             "Possible Conditions",
-
             "Possible Abnormalities or Concerns"
-
         ],
 
         "reasoning": [
-
             "Evidence / Reasoning",
-
             "Supporting Reasoning"
-
         ],
 
         "red_flags": [
-
             "Red Flags",
-
             "Important Red Flags"
-
         ],
 
         "urgency": [
-
             "Preliminary Urgency"
-
         ],
 
         "next_steps": [
-
             "Recommended Next Steps"
-
         ],
 
         "uncertainty": [
-
             "Uncertainty and Limitations"
-
         ]
-
     }
-
 
     # =====================================================
     # EXTRACT SECTIONS FROM ONE MODEL
@@ -699,67 +867,37 @@ a qualified healthcare professional or veterinarian.
     def extract_sections(text):
 
         sections = {
-
             key: []
-
             for key in section_aliases
-
         }
-
 
         current_section = None
 
-
-        lines = text.splitlines()
-
-
-        for raw_line in lines:
+        for raw_line in text.splitlines():
 
             line = raw_line.strip()
-
 
             if not line:
                 continue
 
-
-            # ---------------------------------------------
-            # Remove markdown formatting
-            # ---------------------------------------------
-
             clean = line
 
+            # Remove markdown
             clean = clean.replace("**", "")
             clean = clean.replace("__", "")
-
             clean = clean.replace("###", "")
             clean = clean.replace("##", "")
             clean = clean.replace("#", "")
-
             clean = clean.strip()
 
-
-            # ---------------------------------------------
-            # Remove numbered heading prefix
-            #
-            # Examples:
-            # 1. Visible Observations
-            # 2. Reported Symptoms
-            # 8. Uncertainty and Limitations
-            # ---------------------------------------------
-
+            # Remove numbered heading
             clean_for_matching = re.sub(
                 r"^\d+\s*[\.\):\-]\s*",
                 "",
                 clean
             ).strip()
 
-
-            # ---------------------------------------------
-            # Check section heading
-            # ---------------------------------------------
-
             matched_section = None
-
 
             for section_key, aliases in section_aliases.items():
 
@@ -770,28 +908,15 @@ a qualified healthcare professional or veterinarian.
                     ):
 
                         matched_section = section_key
-
                         break
-
 
                 if matched_section:
                     break
 
-
-            # ---------------------------------------------
-            # Start new section
-            # ---------------------------------------------
-
             if matched_section:
 
                 current_section = matched_section
-
                 continue
-
-
-            # ---------------------------------------------
-            # Store content
-            # ---------------------------------------------
 
             if current_section:
 
@@ -801,27 +926,21 @@ a qualified healthcare professional or veterinarian.
                     clean
                 ).strip()
 
-
                 if not clean_content:
                     continue
-
 
                 if clean_content in [
                     "---",
                     "___",
                     "***"
                 ]:
-
                     continue
-
 
                 sections[current_section].append(
                     clean_content
                 )
 
-
         return sections
-
 
     # =====================================================
     # EXTRACT ALL MODEL SECTIONS
@@ -829,22 +948,16 @@ a qualified healthcare professional or veterinarian.
 
     model_sections = []
 
-
     for item in successful:
 
         model_sections.append(
-
             {
                 "model": item["model"],
-
                 "sections": extract_sections(
                     item["result"]
                 )
-
             }
-
         )
-
 
     # =====================================================
     # NORMALIZE TEXT
@@ -854,9 +967,7 @@ a qualified healthcare professional or veterinarian.
 
         text = text.lower()
 
-
         punctuation = (
-
             ".",
             ",",
             ":",
@@ -872,9 +983,7 @@ a qualified healthcare professional or veterinarian.
             "-",
             "_",
             "*"
-
         )
-
 
         for char in punctuation:
 
@@ -883,12 +992,9 @@ a qualified healthcare professional or veterinarian.
                 " "
             )
 
-
         words = text.split()
 
-
         stop_words = {
-
             "the",
             "a",
             "an",
@@ -912,23 +1018,15 @@ a qualified healthcare professional or veterinarian.
             "it",
             "not",
             "by"
-
         }
 
-
         words = [
-
             word
-
             for word in words
-
             if word not in stop_words
-
         ]
 
-
         return set(words)
-
 
     # =====================================================
     # TEXT SIMILARITY
@@ -940,31 +1038,27 @@ a qualified healthcare professional or veterinarian.
     ):
 
         words_a = normalize(text_a)
-
         words_b = normalize(text_b)
 
-
         if not words_a or not words_b:
-
             return 0
-
 
         intersection = words_a.intersection(
             words_b
         )
 
-
         union = words_a.union(
             words_b
         )
 
+        if not union:
+            return 0
 
         return (
             len(intersection)
             /
             len(union)
         )
-
 
     # =====================================================
     # COMBINE SECTION
@@ -973,7 +1067,6 @@ a qualified healthcare professional or veterinarian.
     def combine_section(section_key):
 
         entries = []
-
 
         for model in model_sections:
 
@@ -985,29 +1078,22 @@ a qualified healthcare professional or veterinarian.
                 if len(text) < 4:
                     continue
 
-
                 entries.append(
-
                     {
                         "text": text,
                         "model": model["model"]
                     }
-
                 )
 
-
         groups = []
-
 
         for entry in entries:
 
             placed = False
 
-
             for group in groups:
 
                 representative = group[0]["text"]
-
 
                 if similarity(
                     entry["text"],
@@ -1017,9 +1103,7 @@ a qualified healthcare professional or veterinarian.
                     group.append(entry)
 
                     placed = True
-
                     break
-
 
             if not placed:
 
@@ -1027,94 +1111,57 @@ a qualified healthcare professional or veterinarian.
                     [entry]
                 )
 
-
-        # -------------------------------------------------
-        # Sort by model support
-        # -------------------------------------------------
-
+        # Sort by number of supporting models
         groups.sort(
-
             key=lambda group: len(
-
                 set(
-
                     item["model"]
-
                     for item in group
-
                 )
-
             ),
-
             reverse=True
-
         )
 
-
         final_items = []
-
 
         for group in groups:
 
             unique_models = set(
-
                 item["model"]
-
                 for item in group
-
             )
 
-
-            # ---------------------------------------------
-            # Use shortest / clearest statement
-            # ---------------------------------------------
-
             representative = min(
-
                 group,
-
                 key=lambda item: len(
                     item["text"]
                 )
-
             )["text"]
 
-
             final_items.append(
-
                 {
-
                     "text": representative,
-
                     "count": len(unique_models)
-
                 }
-
             )
-
 
         return final_items
 
-
     # =====================================================
-    # BUILD FINAL REPORT
+    # BUILD REPORT
     # =====================================================
 
     report = []
-
 
     report.append(
         "# MEDISCAN AI"
     )
 
-
     report.append(
         "## Consolidated Preliminary Assessment"
     )
 
-
     report.append("")
-
 
     report.append(
         "MediScan independently analyzed this case "
@@ -1122,7 +1169,6 @@ a qualified healthcare professional or veterinarian.
         "the available findings into one preliminary "
         "assessment."
     )
-
 
     # =====================================================
     # VISIBLE OBSERVATIONS
@@ -1132,20 +1178,17 @@ a qualified healthcare professional or veterinarian.
         "visible_observations"
     )
 
-
     if observations:
 
         report.append(
             "### 1. Visible Observations"
         )
 
-
         for item in observations[:6]:
 
             report.append(
                 f"- {item['text']}"
             )
-
 
     # =====================================================
     # REPORTED SYMPTOMS
@@ -1155,20 +1198,17 @@ a qualified healthcare professional or veterinarian.
         "reported_symptoms"
     )
 
-
     if symptoms:
 
         report.append(
             "### 2. Reported Symptoms"
         )
 
-
         for item in symptoms[:6]:
 
             report.append(
                 f"- {item['text']}"
             )
-
 
     # =====================================================
     # POSSIBLE CONDITIONS
@@ -1178,35 +1218,28 @@ a qualified healthcare professional or veterinarian.
         "possible_conditions"
     )
 
-
     if conditions:
 
         report.append(
             "### 3. Possible Conditions or Causes"
         )
 
-
         for item in conditions[:7]:
 
             if item["count"] >= 2:
 
                 report.append(
-
                     f"- {item['text']} "
                     f"({item['count']}/{total_models} "
                     f"models mentioned a similar possibility)"
-
                 )
 
             else:
 
                 report.append(
-
                     f"- {item['text']} "
                     "(mentioned as a possibility)"
-
                 )
-
 
     # =====================================================
     # REASONING
@@ -1216,20 +1249,17 @@ a qualified healthcare professional or veterinarian.
         "reasoning"
     )
 
-
     if reasoning:
 
         report.append(
             "### 4. Supporting Reasoning"
         )
 
-
         for item in reasoning[:5]:
 
             report.append(
                 f"- {item['text']}"
             )
-
 
     # =====================================================
     # RED FLAGS
@@ -1239,20 +1269,17 @@ a qualified healthcare professional or veterinarian.
         "red_flags"
     )
 
-
     if red_flags:
 
         report.append(
             "### 5. Important Red Flags"
         )
 
-
         for item in red_flags[:8]:
 
             report.append(
                 f"- {item['text']}"
             )
-
 
     # =====================================================
     # URGENCY
@@ -1262,20 +1289,17 @@ a qualified healthcare professional or veterinarian.
         "urgency"
     )
 
-
     if urgency:
 
         report.append(
             "### 6. Preliminary Urgency"
         )
 
-
         for item in urgency[:3]:
 
             report.append(
                 f"- {item['text']}"
             )
-
 
     # =====================================================
     # NEXT STEPS
@@ -1285,20 +1309,17 @@ a qualified healthcare professional or veterinarian.
         "next_steps"
     )
 
-
     if next_steps:
 
         report.append(
             "### 7. Recommended Next Steps"
         )
 
-
         for item in next_steps[:7]:
 
             report.append(
                 f"- {item['text']}"
             )
-
 
     # =====================================================
     # MODEL AGREEMENT + UNCERTAINTY
@@ -1307,13 +1328,6 @@ a qualified healthcare professional or veterinarian.
     report.append(
         "### 8. Model Agreement and Uncertainty"
     )
-
-
-    # -----------------------------------------------------
-    # IMPORTANT:
-    # This count is calculated dynamically from the actual
-    # successful model responses.
-    # -----------------------------------------------------
 
     if total_models == 3:
 
@@ -1343,21 +1357,11 @@ a qualified healthcare professional or veterinarian.
             "a usable analysis."
         )
 
-
-    # -----------------------------------------------------
-    # Shared condition groups
-    # -----------------------------------------------------
-
     agreed_conditions = [
-
         item
-
         for item in conditions
-
         if item["count"] >= 2
-
     ]
-
 
     if agreed_conditions:
 
@@ -1374,22 +1378,15 @@ a qualified healthcare professional or veterinarian.
             "agreement on the possible-condition findings."
         )
 
-
-    # -----------------------------------------------------
-    # Uncertainty
-    # -----------------------------------------------------
-
     uncertainty = combine_section(
         "uncertainty"
     )
-
 
     for item in uncertainty[:4]:
 
         report.append(
             f"- {item['text']}"
         )
-
 
     # =====================================================
     # SAFETY NOTE
@@ -1399,9 +1396,7 @@ a qualified healthcare professional or veterinarian.
         "### 9. MediScan Safety Note"
     )
 
-
     report.append(
-
         "This is a consolidated AI-generated "
         "preliminary assessment, not a medical "
         "or veterinary diagnosis. Agreement between "
@@ -1409,13 +1404,7 @@ a qualified healthcare professional or veterinarian.
         "condition. A qualified healthcare professional "
         "or veterinarian should evaluate the case "
         "when appropriate."
-
     )
-
-
-    # =====================================================
-    # RETURN REPORT
-    # =====================================================
 
     return "\n\n".join(report)
 
@@ -1437,15 +1426,12 @@ def home():
 @app.route("/test")
 def test():
 
-    return jsonify({
-
-        "success": True,
-
-        "message": (
-            "Backend connection is working!"
-        )
-
-    })
+    return jsonify(
+        {
+            "success": True,
+            "message": "Backend connection is working!"
+        }
+    )
 
 
 # =========================================================
@@ -1464,7 +1450,6 @@ def analyze():
 
         mime_type = "image/jpeg"
 
-
         # =================================================
         # ANIMAL REQUEST
         # =================================================
@@ -1473,35 +1458,25 @@ def analyze():
 
             image_file = request.files["image"]
 
-
             if image_file.filename == "":
 
-                return jsonify({
-
-                    "success": False,
-
-                    "error": (
-                        "No animal image selected"
-                    )
-
-                }), 400
-
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "No animal image selected"
+                    }
+                ), 400
 
             image_bytes = image_file.read()
 
-
             if not image_bytes:
 
-                return jsonify({
-
-                    "success": False,
-
-                    "error": (
-                        "Animal image is empty"
-                    )
-
-                }), 400
-
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "Animal image is empty"
+                    }
+                ), 400
 
             # ---------------------------------------------
             # Animal information
@@ -1512,62 +1487,48 @@ def analyze():
                 "Unknown"
             )
 
-
             breed = request.form.get(
                 "breed",
                 "Not provided"
             )
-
 
             age = request.form.get(
                 "age",
                 "Not provided"
             )
 
-
             age_unit = request.form.get(
                 "age_unit",
                 "Years"
             )
-
 
             symptoms = request.form.get(
                 "symptoms",
                 "Not provided"
             )
 
-
             behaviour = request.form.get(
                 "behaviour",
                 "Not provided"
             )
 
-
             mime_type = image_file.mimetype
 
-
             if mime_type not in [
-
                 "image/jpeg",
-
                 "image/png",
-
                 "image/webp"
-
             ]:
 
                 mime_type = "image/jpeg"
 
-
             case_type = "animal"
-
 
             # ---------------------------------------------
             # Animal AI prompt
             # ---------------------------------------------
 
             case_prompt = f"""
-
 You are one of three independent AI models participating
 in the MediScan AI multi-model health analysis system.
 
@@ -1600,9 +1561,7 @@ Include exactly these sections:
 8. Uncertainty and Limitations
 
 {SAFETY_INSTRUCTIONS}
-
 """
-
 
         # =================================================
         # HUMAN REQUEST
@@ -1614,25 +1573,28 @@ Include exactly these sections:
                 silent=True
             )
 
-
             if not data or "image" not in data:
 
-                return jsonify({
-
-                    "success": False,
-
-                    "error": (
-                        "No image provided"
-                    )
-
-                }), 400
-
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "No image provided"
+                    }
+                ), 400
 
             image_data = data["image"]
 
+            if not isinstance(image_data, str):
+
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "Invalid image data"
+                    }
+                ), 400
 
             # ---------------------------------------------
-            # Detect MIME type from data URL
+            # Detect MIME type
             # ---------------------------------------------
 
             if "," in image_data:
@@ -1641,7 +1603,6 @@ Include exactly these sections:
                     ",",
                     1
                 )
-
 
                 if "image/png" in header:
 
@@ -1655,21 +1616,26 @@ Include exactly these sections:
 
                     mime_type = "image/jpeg"
 
-
             image_bytes = base64.b64decode(
                 image_data
             )
 
+            if not image_bytes:
+
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "Decoded image is empty"
+                    }
+                ), 400
 
             case_type = "human"
-
 
             # ---------------------------------------------
             # Human AI prompt
             # ---------------------------------------------
 
             case_prompt = f"""
-
 You are one of three independent AI models participating
 in the MediScan AI multi-model health analysis system.
 
@@ -1689,12 +1655,10 @@ Include exactly these sections:
 8. Uncertainty and Limitations
 
 {SAFETY_INSTRUCTIONS}
-
 """
 
-
         # =================================================
-        # RUN ALL THREE MODELS
+        # START MULTI-MODEL ANALYSIS
         # =================================================
 
         print("")
@@ -1703,108 +1667,90 @@ Include exactly these sections:
         print("==============================================")
         print("")
 
-
         results = []
 
+        # =================================================
+        # MODEL 1 - GEMINI
+        # =================================================
 
-        with ThreadPoolExecutor(
-            max_workers=3
-        ) as executor:
+        print("----------------------------------------------")
+        print("MODEL 1/3: GEMINI")
+        print("----------------------------------------------")
 
-            futures = [
+        gemini_result = analyze_with_gemini(
+            image_bytes,
+            mime_type,
+            case_prompt
+        )
 
-                executor.submit(
+        results.append(
+            gemini_result
+        )
 
-                    analyze_with_gemini,
+        # Small delay before next provider
+        time.sleep(2)
 
-                    image_bytes,
+        # =================================================
+        # MODEL 2 - QWEN
+        # =================================================
 
-                    mime_type,
+        print("----------------------------------------------")
+        print("MODEL 2/3: QWEN")
+        print("----------------------------------------------")
 
-                    case_prompt
+        qwen_result = analyze_with_openrouter(
+            QWEN_API_KEY,
+            QWEN_MODEL,
+            "Qwen",
+            image_bytes,
+            mime_type,
+            case_prompt
+        )
 
-                ),
+        results.append(
+            qwen_result
+        )
 
-                executor.submit(
+        # Small delay before next provider
+        time.sleep(2)
 
-                    analyze_with_openrouter,
+        # =================================================
+        # MODEL 3 - NEMOTRON
+        # =================================================
 
-                    QWEN_API_KEY,
+        print("----------------------------------------------")
+        print("MODEL 3/3: NEMOTRON")
+        print("----------------------------------------------")
 
-                    QWEN_MODEL,
+        nemotron_result = analyze_with_openrouter(
+            NEMOTRON_API_KEY,
+            NEMOTRON_MODEL,
+            "Nemotron",
+            image_bytes,
+            mime_type,
+            case_prompt
+        )
 
-                    "Qwen",
-
-                    image_bytes,
-
-                    mime_type,
-
-                    case_prompt
-
-                ),
-
-                executor.submit(
-
-                    analyze_with_openrouter,
-
-                    NEMOTRON_API_KEY,
-
-                    NEMOTRON_MODEL,
-
-                    "Nemotron",
-
-                    image_bytes,
-
-                    mime_type,
-
-                    case_prompt
-
-                )
-
-            ]
-
-
-            for future in as_completed(futures):
-
-                try:
-
-                    results.append(
-                        future.result()
-                    )
-
-                except Exception as error:
-
-                    print(
-                        "MODEL THREAD ERROR:"
-                    )
-
-                    print(error)
-
+        results.append(
+            nemotron_result
+        )
 
         # =================================================
         # KEEP CONSISTENT MODEL ORDER
         # =================================================
 
         model_order = {
-
             "Gemini": 1,
-
             "Qwen": 2,
-
             "Nemotron": 3
-
         }
 
-
         results.sort(
-
             key=lambda x: model_order.get(
                 x.get("model"),
                 99
             )
-
         )
-
 
         # =================================================
         # PRINT MODEL STATUS
@@ -1814,7 +1760,6 @@ Include exactly these sections:
         print("==============================================")
         print("MODEL RESULTS")
         print("==============================================")
-
 
         for item in results:
 
@@ -1831,31 +1776,70 @@ Include exactly these sections:
                 )
 
                 print(
-                    f"  Error: {item.get('error', 'Unknown error')}"
+                    f"  Error: "
+                    f"{item.get('error', 'Unknown error')}"
                 )
 
-
-        successful_count = len([
-
+        successful_models = [
             item
-
             for item in results
-
             if item.get("success") is True
             and item.get("result")
             and str(item.get("result")).strip()
+        ]
 
-        ])
-
+        successful_count = len(
+            successful_models
+        )
 
         print("")
         print(
             f"SUCCESSFUL MODELS: "
             f"{successful_count}/3"
         )
-
         print("")
 
+        # =================================================
+        # ALL MODELS FAILED
+        # =================================================
+
+        if successful_count == 0:
+
+            return jsonify(
+                {
+                    "success": False,
+
+                    "type": case_type,
+
+                    "result": (
+                        "MediScan could not obtain a usable "
+                        "AI analysis at this time. "
+                        "Please try again later."
+                    ),
+
+                    "models": results,
+
+                    "successful_models": 0,
+
+                    "total_models": 3,
+
+                    "consensus": {
+                        "available": False,
+                        "agreement_level": (
+                            "No usable model responses"
+                        ),
+                        "message": (
+                            "All three AI model requests "
+                            "failed or were unavailable."
+                        )
+                    },
+
+                    "error": (
+                        "All configured AI models "
+                        "were unavailable."
+                    )
+                }
+            ), 503
 
         # =================================================
         # BUILD FINAL REPORT
@@ -1866,61 +1850,57 @@ Include exactly these sections:
             case_type
         )
 
+        # =================================================
+        # CONSENSUS
+        # =================================================
+
+        consensus = calculate_textual_agreement(
+            results
+        )
 
         # =================================================
-        # RESPONSE
+        # FINAL RESPONSE
         # =================================================
 
-        return jsonify({
+        return jsonify(
+            {
+                "success": True,
 
-            "success": True,
+                "type": case_type,
 
-            "type": case_type,
+                # Existing frontend uses this
+                "result": final_report,
 
-            # Existing frontend can continue using this
-            "result": final_report,
+                # Individual model responses
+                "models": results,
 
-            # Individual model responses
-            "models": results,
+                # Successful model count
+                "successful_models": successful_count,
 
-            # Number of successful models
-            "successful_models": successful_count,
+                # Total configured models
+                "total_models": 3,
 
-            "total_models": 3,
-
-            # Consensus information
-            "consensus":
-                calculate_textual_agreement(
-                    results
-                )
-
-        })
-
+                # Consensus information
+                "consensus": consensus
+            }
+        )
 
     except Exception as error:
 
-        print(
-            "==================================="
-        )
-
-        print(
-            "MEDISCAN AI ERROR:"
-        )
-
+        print("")
+        print("===================================")
+        print("MEDISCAN AI ERROR:")
+        print("===================================")
         print(error)
+        print("===================================")
+        print("")
 
-        print(
-            "==================================="
-        )
-
-
-        return jsonify({
-
-            "success": False,
-
-            "error": str(error)
-
-        }), 500
+        return jsonify(
+            {
+                "success": False,
+                "error": str(error)
+            }
+        ), 500
 
 
 # =========================================================
@@ -1939,32 +1919,23 @@ def chat():
             silent=True
         ) or {}
 
-
         message = str(
-
             data.get(
                 "message",
                 ""
             )
-
         ).strip()
-
 
         if not message:
 
-            return jsonify({
-
-                "success": False,
-
-                "error": (
-                    "Message is required."
-                )
-
-            }), 400
-
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Message is required."
+                }
+            ), 400
 
         prompt = f"""
-
 You are MediScan AI Assistant.
 
 You are a helpful healthcare information assistant
@@ -1984,27 +1955,73 @@ User message:
 {message}
 
 Answer:
-
 """
 
+        last_error = ""
 
-        response = gemini_client.models.generate_content(
+        for attempt in range(
+            1,
+            MAX_RETRIES + 1
+        ):
 
-            model=GEMINI_MODEL,
+            try:
 
-            contents=prompt
+                print(
+                    f"[Chat/Gemini] "
+                    f"Attempt {attempt}/{MAX_RETRIES}"
+                )
 
-        )
+                response = (
+                    gemini_client.models.generate_content(
+                        model=GEMINI_MODEL,
+                        contents=prompt
+                    )
+                )
 
+                if not response.text:
 
-        return jsonify({
+                    raise Exception(
+                        "Gemini returned no chat response."
+                    )
 
-            "success": True,
+                return jsonify(
+                    {
+                        "success": True,
+                        "reply": response.text
+                    }
+                )
 
-            "reply": response.text
+            except Exception as error:
 
-        })
+                last_error = clean_error_message(
+                    error
+                )
 
+                print(
+                    "[Chat/Gemini] ERROR:"
+                )
+
+                print(last_error)
+
+                if (
+                    attempt < MAX_RETRIES
+                    and is_retryable_error(last_error)
+                ):
+
+                    time.sleep(
+                        RETRY_DELAY_SECONDS
+                    )
+
+                else:
+
+                    break
+
+        return jsonify(
+            {
+                "success": False,
+                "error": last_error
+            }
+        ), 503
 
     except Exception as error:
 
@@ -2014,14 +2031,12 @@ Answer:
 
         print(error)
 
-
-        return jsonify({
-
-            "success": False,
-
-            "error": str(error)
-
-        }), 500
+        return jsonify(
+            {
+                "success": False,
+                "error": str(error)
+            }
+        ), 500
 
 
 # =========================================================
@@ -2031,21 +2046,14 @@ Answer:
 if __name__ == "__main__":
 
     port = int(
-
         os.environ.get(
             "PORT",
             5002
         )
-
     )
 
-
     app.run(
-
         host="0.0.0.0",
-
         port=port,
-
         debug=False
-
     )
