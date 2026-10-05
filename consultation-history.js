@@ -10,6 +10,10 @@ import {
 } from "./firebase.js";
 
 
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
+
 const tableBody =
   document.getElementById("tableBody");
 
@@ -32,11 +36,52 @@ const resultsNote =
   document.querySelector(".results-note");
 
 
+/* =========================================================
+   DATE RANGE ELEMENTS
+   ========================================================= */
+
+const dateRangeBtn =
+  document.getElementById("dateRangeBtn");
+
+const dateRangeText =
+  document.getElementById("dateRangeText");
+
+const datePicker =
+  document.getElementById("datePicker");
+
+const startDateInput =
+  document.getElementById("startDate");
+
+const endDateInput =
+  document.getElementById("endDate");
+
+const applyDateBtn =
+  document.getElementById("applyDateBtn");
+
+const clearDateBtn =
+  document.getElementById("clearDateBtn");
+
+
+/* =========================================================
+   DATA
+   ========================================================= */
+
 let allReports = [];
+
 let filteredReports = [];
 
 let currentPage = 1;
+
 const pageSize = 5;
+
+
+/* =========================================================
+   DATE FILTER STATE
+   ========================================================= */
+
+let selectedStartDate = null;
+
+let selectedEndDate = null;
 
 
 /* =========================================================
@@ -90,6 +135,7 @@ function extractCondition(result) {
 
     return match[1]
       .replace(/\*\*/g, "")
+      .replace(/^[-•]\s*/, "")
       .trim();
 
   }
@@ -207,12 +253,13 @@ async function loadConsultations(uid) {
 
     currentPage = 1;
 
+
     applyFilters();
 
 
-    /* =====================================================
-       DASHBOARD → HISTORY → SPECIFIC REPORT
-       ===================================================== */
+    /*
+      Dashboard → History → Specific Report
+    */
 
     const selectedReportId =
       sessionStorage.getItem(
@@ -262,6 +309,7 @@ async function loadConsultations(uid) {
 
 
     tableBody.innerHTML = `
+
       <tr>
 
         <td
@@ -283,6 +331,7 @@ async function loadConsultations(uid) {
         </td>
 
       </tr>
+
     `;
 
 
@@ -318,6 +367,7 @@ onAuthStateChanged(
 
 
       tableBody.innerHTML = `
+
         <tr>
 
           <td
@@ -335,6 +385,7 @@ onAuthStateChanged(
           </td>
 
         </tr>
+
       `;
 
 
@@ -506,7 +557,9 @@ function createRow(report) {
 
       <td>
 
-        <span class="type-chip ${typeClass}">
+        <span
+          class="type-chip ${typeClass}"
+        >
 
           ${
             isAnimal
@@ -641,6 +694,7 @@ function renderReports(reports) {
   if (!pageReports.length) {
 
     tableBody.innerHTML = `
+
       <tr>
 
         <td
@@ -661,24 +715,20 @@ function renderReports(reports) {
             📋
           </div>
 
-
           <strong>
-            No consultations yet
+            No consultations found
           </strong>
-
 
           <div
             style="margin-top:6px;"
           >
-
-            Your completed Human and Animal
-            consultations will appear here.
-
+            Try changing your filters.
           </div>
 
         </td>
 
       </tr>
+
     `;
 
   } else {
@@ -990,15 +1040,10 @@ function applyFilters() {
 
         const searchText =
           `
-
             ${patient}
-
             ${condition}
-
             ${report.symptoms || ""}
-
             ${report.type || ""}
-
           `
             .toLowerCase();
 
@@ -1024,10 +1069,54 @@ function applyFilters() {
             selectedStatus;
 
 
+        /*
+          DATE RANGE FILTER
+        */
+
+        const reportDate =
+          getReportDate(
+            report
+          );
+
+
+        let matchesDate =
+          true;
+
+
+        if (
+          selectedStartDate &&
+          reportDate <
+            selectedStartDate
+        ) {
+
+          matchesDate =
+            false;
+
+        }
+
+
+        if (
+          selectedEndDate &&
+          reportDate >
+            selectedEndDate
+        ) {
+
+          matchesDate =
+            false;
+
+        }
+
+
         return (
+
           matchesSearch &&
+
           matchesType &&
-          matchesStatus
+
+          matchesStatus &&
+
+          matchesDate
+
         );
 
       }
@@ -1046,6 +1135,263 @@ function applyFilters() {
 
 
 /* =========================================================
+   DATE RANGE PICKER
+   ========================================================= */
+
+if (
+  dateRangeBtn &&
+  datePicker
+) {
+
+
+  /* ---------------------------------------------
+     OPEN / CLOSE
+     --------------------------------------------- */
+
+  dateRangeBtn.addEventListener(
+    "click",
+    (event) => {
+
+      event.stopPropagation();
+
+      datePicker.classList.toggle(
+        "show"
+      );
+
+    }
+  );
+
+
+  /* ---------------------------------------------
+     PREVENT CLOSE INSIDE
+     --------------------------------------------- */
+
+  datePicker.addEventListener(
+    "click",
+    (event) => {
+
+      event.stopPropagation();
+
+    }
+  );
+
+
+  /* ---------------------------------------------
+     CLOSE OUTSIDE
+     --------------------------------------------- */
+
+  document.addEventListener(
+    "click",
+    () => {
+
+      datePicker.classList.remove(
+        "show"
+      );
+
+    }
+  );
+
+
+  /* ---------------------------------------------
+     APPLY
+     --------------------------------------------- */
+
+  if (applyDateBtn) {
+
+    applyDateBtn.addEventListener(
+      "click",
+      () => {
+
+        const start =
+          startDateInput?.value ||
+          "";
+
+        const end =
+          endDateInput?.value ||
+          "";
+
+
+        if (
+          start &&
+          end &&
+          new Date(start) >
+            new Date(end)
+        ) {
+
+          alert(
+            "Start date cannot be after end date."
+          );
+
+          return;
+
+        }
+
+
+        selectedStartDate =
+          start
+            ? new Date(
+                start +
+                "T00:00:00"
+              )
+            : null;
+
+
+        selectedEndDate =
+          end
+            ? new Date(
+                end +
+                "T23:59:59"
+              )
+            : null;
+
+
+        if (
+          start &&
+          end
+        ) {
+
+          dateRangeText.textContent =
+            formatDate(start) +
+            " – " +
+            formatDate(end);
+
+        }
+
+        else if (start) {
+
+          dateRangeText.textContent =
+            "From " +
+            formatDate(start);
+
+        }
+
+        else if (end) {
+
+          dateRangeText.textContent =
+            "Until " +
+            formatDate(end);
+
+        }
+
+        else {
+
+          dateRangeText.textContent =
+            "Select Date Range";
+
+        }
+
+
+        currentPage =
+          1;
+
+
+        applyFilters();
+
+
+        datePicker.classList.remove(
+          "show"
+        );
+
+      }
+    );
+
+  }
+
+
+  /* ---------------------------------------------
+     CLEAR DATE
+     --------------------------------------------- */
+
+  if (clearDateBtn) {
+
+    clearDateBtn.addEventListener(
+      "click",
+      () => {
+
+        if (startDateInput) {
+          startDateInput.value = "";
+        }
+
+
+        if (endDateInput) {
+          endDateInput.value = "";
+        }
+
+
+        selectedStartDate =
+          null;
+
+
+        selectedEndDate =
+          null;
+
+
+        if (dateRangeText) {
+
+          dateRangeText.textContent =
+            "Select Date Range";
+
+        }
+
+
+        currentPage =
+          1;
+
+
+        applyFilters();
+
+
+        datePicker.classList.remove(
+          "show"
+        );
+
+      }
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   FORMAT DATE
+   ========================================================= */
+
+function formatDate(
+  dateString
+) {
+
+  const date =
+    new Date(
+      dateString +
+      "T00:00:00"
+    );
+
+
+  if (
+    isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return dateString;
+
+  }
+
+
+  return date.toLocaleDateString(
+    "en-US",
+    {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    }
+  );
+
+}
+
+
+/* =========================================================
    RESET
    ========================================================= */
 
@@ -1056,31 +1402,57 @@ resetBtn.addEventListener(
     searchInput.value =
       "";
 
+
     typeFilter.value =
       "all";
+
 
     statusFilter.value =
       "all";
 
 
-    const user =
-      auth.currentUser;
+    selectedStartDate =
+      null;
 
 
-    if (!user) {
+    selectedEndDate =
+      null;
 
-      alert(
-        "Please log in again."
-      );
 
-      return;
+    if (startDateInput) {
+      startDateInput.value =
+        "";
+    }
+
+
+    if (endDateInput) {
+      endDateInput.value =
+        "";
+    }
+
+
+    if (dateRangeText) {
+
+      dateRangeText.textContent =
+        "Select Date Range";
 
     }
 
 
-    await loadConsultations(
-      user.uid
-    );
+    if (datePicker) {
+
+      datePicker.classList.remove(
+        "show"
+      );
+
+    }
+
+
+    currentPage =
+      1;
+
+
+    applyFilters();
 
   }
 );
@@ -1214,7 +1586,7 @@ if (pagination) {
           1,
           Math.ceil(
             filteredReports.length /
-              pageSize
+            pageSize
           )
         );
 
@@ -1368,9 +1740,7 @@ function showReportModal(
             "
           >
 
-            <h2
-              id="reportModalTitle"
-            >
+            <h2 id="reportModalTitle">
               Consultation Report
             </h2>
 
@@ -1574,7 +1944,6 @@ function showReportModal(
           Patient
         </div>
 
-
         <strong>
           ${escapeHtml(patientName)}
         </strong>
@@ -1598,7 +1967,6 @@ function showReportModal(
         >
           Date
         </div>
-
 
         <strong>
           ${
@@ -1630,7 +1998,6 @@ function showReportModal(
           Type
         </div>
 
-
         <strong>
           ${escapeHtml(type)}
         </strong>
@@ -1654,7 +2021,6 @@ function showReportModal(
         >
           Status
         </div>
-
 
         <strong>
           ${escapeHtml(
@@ -1687,12 +2053,10 @@ function showReportModal(
         margin-bottom:18px;
       "
     >
-
       ${escapeHtml(
         report.symptoms ||
         "Not provided"
       )}
-
     </div>
 
 
@@ -1717,12 +2081,10 @@ function showReportModal(
         overflow:auto;
       "
     >
-
       ${escapeHtml(
         report.aiResult ||
         "No AI result available."
       )}
-
     </div>
 
   `;

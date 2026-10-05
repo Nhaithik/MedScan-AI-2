@@ -1,613 +1,3204 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
 <title>MediScan AI — Animal Analysis Results</title>
+
 <style>
-  :root{
-    --purple:#7c6ff0;
-    --purple-dark:#5b4fd6;
-    --blue:#2f6fed;
-    --green:#3cb897;
-    --orange:#f5a623;
-    --red:#e15b5b;
-    --pink:#ef5f8a;
-    --ink:#12213e;
-    --muted:#5b6b8c;
-    --border:#e6ebf5;
-    --bg-soft:#f6f9fd;
-    --radius:16px;
-    --shadow-sm:0 4px 14px rgba(18,33,62,0.06);
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{
-    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
-    color:var(--ink);
-    background:var(--bg-soft);
-  }
-  a{text-decoration:none;color:inherit;}
-  button{font-family:inherit;}
 
-  .app{display:grid;grid-template-columns:270px 1fr;min-height:100vh;}
+/* =========================================================
+   MEDISCAN AI — ANIMAL RESULTS
+   ========================================================= */
 
-  /* Sidebar */
-  .sidebar{background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:26px 20px;}
-  .brand{display:flex;align-items:center;gap:10px;margin-bottom:34px;padding:0 6px;}
-  .brand .mark{font-size:26px;}
-  .brand .name{font-weight:700;font-size:17px;}
-  .brand .name .blue{color:var(--blue);}
-  .brand .name .green{color:var(--green);}
-  .brand .sub{display:block;font-size:11px;font-weight:400;color:var(--muted);}
-  .nav-main{display:flex;flex-direction:column;gap:4px;flex:1;}
-  .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;font-size:14.5px;font-weight:500;color:var(--ink);cursor:pointer;}
-  .nav-item .ic{width:20px;text-align:center;font-size:16px;}
-  .nav-item:hover{background:var(--bg-soft);}
-  .nav-item.active{background:#f1eefe;color:var(--purple-dark);font-weight:700;}
-  .nav-divider{height:1px;background:var(--border);margin:14px 0;}
-  .help-box{background:#f1eefe;border-radius:14px;padding:18px;margin-top:16px;}
-  .help-box b{font-size:13.5px;color:var(--purple-dark);}
-  .help-box p{font-size:12px;color:var(--muted);margin:8px 0 14px;}
-  .chat-btn{
-    display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
-    background:#fff;border:1px solid #d9d0fc;border-radius:10px;padding:10px 14px;
-    font-size:13px;font-weight:600;color:var(--purple-dark);cursor:pointer;
-  }
-  .bot-emoji{font-size:70px;text-align:center;margin-top:14px;}
+:root{
 
-  /* Main */
-  .main{display:flex;flex-direction:column;}
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 34px;background:#fff;border-bottom:1px solid var(--border);}
-  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);}
-  .breadcrumb b{color:var(--ink);font-weight:700;}
-  .breadcrumb .sep{color:#c7cede;}
-  .topbar-right{display:flex;align-items:center;gap:22px;}
-  .bell{position:relative;font-size:19px;cursor:pointer;}
-  .bell .dot{position:absolute;top:-6px;right:-8px;background:var(--pink);color:#fff;font-size:10px;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;}
-  .user-chip{display:flex;align-items:center;gap:10px;cursor:pointer;}
-  .avatar-circle{width:42px;height:42px;border-radius:50%;background:#ffe3c2;display:flex;align-items:center;justify-content:center;font-size:20px;}
-  .user-chip b{font-size:14px;display:block;}
-  .user-chip span{font-size:11.5px;color:var(--muted);}
-  .caret{font-size:10px;color:var(--muted);}
+  --blue:#2f6fed;
+  --blue-dark:#1e4fc4;
 
-  .content{padding:28px 34px 40px;max-width:1000px;}
+  --green:#3cb897;
 
-  .page-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;flex-wrap:wrap;}
-  .page-head h1{font-size:20px;font-weight:800;}
-  .page-head p{font-size:12.5px;color:var(--muted);margin-top:4px;}
-  .status-chip{
-    background:#e6f9ef;color:var(--green);font-size:12.5px;font-weight:700;padding:6px 14px;border-radius:20px;height:fit-content;
-  }
+  --purple:#7c6ff0;
+  --purple-dark:#5b4fd6;
 
-  .card{border-radius:var(--radius);padding:22px;margin-bottom:18px;}
-  .card.condition{background:#fdeeee;}
-  .card.findings{background:#eaf1ff;}
-  .card.homecare{background:#eafbf3;}
-  .card.vet{background:#fff5e9;}
-  .card.urgency{background:#fdeeee;}
-  .card.plain{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow-sm);}
+  --orange:#f5a623;
 
-  .cond-row{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap;}
-  .cond-left{display:flex;gap:14px;}
-  .cond-ic{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-  .cond-label{font-size:12px;color:var(--muted);margin-bottom:4px;}
-  .cond-name{font-size:19px;font-weight:800;color:var(--red);margin-bottom:8px;}
-  .cond-desc{font-size:13px;color:var(--muted);max-width:340px;line-height:1.5;}
-  .conf-label{font-size:12px;color:var(--muted);text-align:center;margin-bottom:8px;}
-  .ring{
-    width:82px;height:82px;border-radius:50%;
-    background:conic-gradient(var(--green) 87%, #f3d9d9 0);
-    display:flex;align-items:center;justify-content:center;margin:0 auto;
-  }
-  .ring span{
-    width:62px;height:62px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;
-    font-size:16px;font-weight:800;
-  }
-  .conf-tag{font-size:11px;color:var(--green);font-weight:700;text-align:center;margin-top:6px;}
+  --pink:#ef5f8a;
 
-  .split-row{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:start;}
-  .section-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;margin-bottom:14px;}
-  .section-title .si{font-size:16px;}
-  .section-title.blue{color:var(--blue);}
-  .section-title.green{color:#1e7a55;}
-  .section-title.orange{color:#b5720f;}
-  .info-list li{display:flex;gap:8px;font-size:13px;color:var(--ink);margin-bottom:10px;align-items:flex-start;}
-  .info-list li:last-child{margin-bottom:0;}
-  .info-list .c{font-weight:800;flex-shrink:0;color:var(--blue);}
-  .info-list.green-check .c{color:var(--green);}
-  .info-list.orange-dot .c{color:var(--orange);}
-  .img-box{border-radius:12px;overflow:hidden;height:100%;min-height:180px;background:linear-gradient(160deg,#e6c9a0,#c9976a);}
-  .img-box img{width:100%;height:100%;object-fit:cover;display:block;}
+  --red:#e15b5b;
 
-  .note-box{background:#fff;border-radius:12px;padding:16px;height:100%;}
-  .note-box b{color:#1e7a55;font-size:13px;display:block;margin-bottom:8px;}
-  .note-box p{font-size:12.5px;color:var(--muted);line-height:1.5;}
+  --ink:#12213e;
+  --muted:#5b6b8c;
 
-  .vet-row{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:center;}
-  .vet-desc{font-size:13px;color:var(--ink);line-height:1.5;margin-bottom:6px;}
-  .vet-emoji{font-size:70px;text-align:center;}
+  --border:#e6ebf5;
 
-  .urgency-row{display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center;}
-  .urgency-ic{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;}
-  .urgency-lab{font-size:12.5px;color:var(--muted);margin-bottom:4px;}
-  .urgency-val{font-size:18px;font-weight:800;color:var(--orange);}
-  .urgency-desc{font-size:12.5px;color:var(--muted);max-width:280px;line-height:1.5;}
-  .gauge-wrap{width:220px;}
-  .gauge{
-    height:8px;border-radius:6px;background:linear-gradient(90deg,#3cb897,#f5d76e,#f5a623,#e15b5b);position:relative;
-  }
-  .gauge-dot{
-    position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;
-    border:3px solid var(--orange);left:42%;
-  }
-  .gauge-labels{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:8px;}
+  --bg-soft:#f6f9fd;
 
-  .action-row{display:grid;grid-template-columns:1fr 1.6fr;gap:16px;margin-bottom:14px;}
-  .btn-download{
-    border:1px solid var(--purple);color:var(--purple-dark);background:#fff;border-radius:10px;padding:14px;
-    font-size:13.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  }
-  .btn-download:hover{background:#f7f6ff;}
-  .btn-save{
-    border:none;background:linear-gradient(90deg,var(--purple),#9b8ff5);color:#fff;border-radius:10px;padding:14px;
-    font-size:13.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  }
-  .btn-save:hover{opacity:.92;}
-  .secure-note{text-align:center;font-size:12px;color:var(--muted);}
+  --radius:16px;
 
-  @media (max-width:900px){
-    .app{grid-template-columns:1fr;}
-    .sidebar{display:none;}
-    .split-row, .vet-row, .action-row{grid-template-columns:1fr;}
-    .urgency-row{grid-template-columns:1fr;text-align:left;}
-    .gauge-wrap{width:100%;}
-  }
+  --shadow-sm:
+    0 4px 14px rgba(18,33,62,0.06);
 
-  <script>
-
-  // ==========================================
-  // DATE AND TIME
-  // ==========================================
-
-  const d = new Date();
-
-  const dateStr = d.toLocaleDateString(
-    'en-US',
-    {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }
-  );
-
-  const timeStr = d.toLocaleTimeString(
-    'en-US',
-    {
-      hour: 'numeric',
-      minute: '2-digit'
-    }
-  );
-
-  document.getElementById(
-    'resultTimestamp'
-  ).textContent =
-    'Completed on ' +
-    dateStr +
-    ', ' +
-    timeStr;
+}
 
 
-  // ==========================================
-  // LOAD REAL ANIMAL GEMINI RESULT
-  // ==========================================
+/* =========================================================
+   RESET
+   ========================================================= */
 
-  const aiResult =
-    sessionStorage.getItem(
-      'mediscan_animal_ai_result'
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+
+body{
+
+  font-family:
+    'Segoe UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  color:var(--ink);
+
+  background:var(--bg-soft);
+
+}
+
+
+a{
+  text-decoration:none;
+  color:inherit;
+}
+
+
+button{
+  font-family:inherit;
+}
+
+
+/* =========================================================
+   MAIN APP
+   ========================================================= */
+
+.app{
+
+  display:grid;
+
+  grid-template-columns:270px 1fr;
+
+  min-height:100vh;
+
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.sidebar{
+
+  background:#fff;
+
+  border-right:1px solid var(--border);
+
+  display:flex;
+
+  flex-direction:column;
+
+  padding:26px 20px;
+
+}
+
+
+.brand{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
+
+  margin-bottom:34px;
+
+  padding:0 6px;
+
+}
+
+
+.brand .mark{
+  font-size:26px;
+}
+
+
+.brand .name{
+
+  font-weight:700;
+
+  font-size:17px;
+
+}
+
+
+.brand .name .blue{
+  color:var(--blue);
+}
+
+
+.brand .name .green{
+  color:var(--green);
+}
+
+
+.brand .sub{
+
+  display:block;
+
+  font-size:11px;
+
+  font-weight:400;
+
+  color:var(--muted);
+
+}
+
+
+.nav-main{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:4px;
+
+  flex:1;
+
+}
+
+
+.nav-item{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:12px;
+
+  padding:12px 14px;
+
+  border-radius:10px;
+
+  font-size:14.5px;
+
+  font-weight:500;
+
+  color:var(--ink);
+
+  cursor:pointer;
+
+}
+
+
+.nav-item .ic{
+
+  width:20px;
+
+  text-align:center;
+
+  font-size:16px;
+
+}
+
+
+.nav-item:hover{
+  background:var(--bg-soft);
+}
+
+
+.nav-item.active{
+
+  background:#f1eefe;
+
+  color:var(--purple-dark);
+
+  font-weight:700;
+
+}
+
+
+.nav-divider{
+
+  height:1px;
+
+  background:var(--border);
+
+  margin:14px 0;
+
+}
+
+
+.help-box{
+
+  background:#f1eefe;
+
+  border-radius:14px;
+
+  padding:18px;
+
+  margin-top:16px;
+
+}
+
+
+.help-box b{
+
+  font-size:13.5px;
+
+  color:var(--purple-dark);
+
+}
+
+
+.help-box p{
+
+  font-size:12px;
+
+  color:var(--muted);
+
+  margin:8px 0 14px;
+
+}
+
+
+.chat-btn{
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  gap:8px;
+
+  width:100%;
+
+  background:#fff;
+
+  border:1px solid #d9d0fc;
+
+  border-radius:10px;
+
+  padding:10px 14px;
+
+  font-size:13px;
+
+  font-weight:600;
+
+  color:var(--purple-dark);
+
+  cursor:pointer;
+
+}
+
+
+.bot-emoji{
+
+  font-size:70px;
+
+  text-align:center;
+
+  margin-top:14px;
+
+}
+
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+.main{
+
+  display:flex;
+
+  flex-direction:column;
+
+}
+
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+
+.topbar{
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:space-between;
+
+  padding:16px 34px;
+
+  background:#fff;
+
+  border-bottom:1px solid var(--border);
+
+}
+
+
+.breadcrumb{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:8px;
+
+  font-size:14px;
+
+  color:var(--muted);
+
+}
+
+
+.breadcrumb b{
+
+  color:var(--ink);
+
+  font-weight:700;
+
+}
+
+
+.breadcrumb .sep{
+  color:#c7cede;
+}
+
+
+.topbar-right{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:22px;
+
+}
+
+
+.bell{
+
+  position:relative;
+
+  font-size:19px;
+
+  cursor:pointer;
+
+}
+
+
+.bell .dot{
+
+  position:absolute;
+
+  top:-6px;
+
+  right:-8px;
+
+  background:var(--pink);
+
+  color:#fff;
+
+  font-size:10px;
+
+  width:17px;
+
+  height:17px;
+
+  border-radius:50%;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  font-weight:700;
+
+}
+
+
+.user-chip{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
+
+  cursor:pointer;
+
+}
+
+
+.avatar-circle{
+
+  width:42px;
+
+  height:42px;
+
+  border-radius:50%;
+
+  background:#ffe3c2;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  font-size:20px;
+
+}
+
+
+.user-chip b{
+
+  font-size:14px;
+
+  display:block;
+
+}
+
+
+.user-chip span{
+
+  font-size:11.5px;
+
+  color:var(--muted);
+
+}
+
+
+.caret{
+
+  font-size:10px;
+
+  color:var(--muted);
+
+}
+
+
+/* =========================================================
+   CONTENT
+   ========================================================= */
+
+.content{
+
+  padding:28px 34px 40px;
+
+  max-width:1100px;
+
+}
+
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.page-head{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:flex-start;
+
+  margin-bottom:22px;
+
+  gap:20px;
+
+  flex-wrap:wrap;
+
+}
+
+
+.page-head h1{
+
+  font-size:22px;
+
+  font-weight:800;
+
+}
+
+
+.page-head p{
+
+  font-size:13px;
+
+  color:var(--muted);
+
+  margin-top:4px;
+
+}
+
+
+.status-card{
+
+  background:#e6f9ef;
+
+  border-radius:10px;
+
+  padding:10px 16px;
+
+  text-align:right;
+
+}
+
+
+.status-card .chip{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:6px;
+
+  color:var(--green);
+
+  font-weight:700;
+
+  font-size:13px;
+
+}
+
+
+.status-card .ts{
+
+  font-size:11.5px;
+
+  color:var(--muted);
+
+  margin-top:4px;
+
+}
+
+
+/* =========================================================
+   HERO PANEL
+   ========================================================= */
+
+.panel{
+
+  background:#fff;
+
+  border:1px solid var(--border);
+
+  border-radius:var(--radius);
+
+  padding:24px;
+
+  box-shadow:var(--shadow-sm);
+
+  margin-bottom:20px;
+
+}
+
+
+.result-hero{
+
+  display:grid;
+
+  grid-template-columns:1.2fr 1fr;
+
+  gap:26px;
+
+  align-items:center;
+
+}
+
+
+.cond-label{
+
+  font-size:12.5px;
+
+  color:var(--muted);
+
+  margin-bottom:6px;
+
+}
+
+
+.cond-name{
+
+  font-size:22px;
+
+  font-weight:800;
+
+  color:var(--ink);
+
+  line-height:1.3;
+
+}
+
+
+.cond-sub{
+
+  font-size:13.5px;
+
+  color:var(--muted);
+
+  margin-top:5px;
+
+  margin-bottom:20px;
+
+  line-height:1.5;
+
+}
+
+
+/* =========================================================
+   MODEL SCORE
+   ========================================================= */
+
+.model-label{
+
+  font-size:12.5px;
+
+  color:var(--muted);
+
+  margin-bottom:10px;
+
+}
+
+
+.model-score{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:14px;
+
+}
+
+
+.model-ring{
+
+  width:92px;
+
+  height:92px;
+
+  border-radius:50%;
+
+  background:
+    conic-gradient(
+      var(--green) 100%,
+      var(--border) 0
     );
 
+  display:flex;
 
-  const resultBox =
-    document.getElementById(
-      'animalAIResult'
+  align-items:center;
+
+  justify-content:center;
+
+  flex-shrink:0;
+
+}
+
+
+.model-ring-inner{
+
+  width:70px;
+
+  height:70px;
+
+  border-radius:50%;
+
+  background:#fff;
+
+  display:flex;
+
+  flex-direction:column;
+
+  align-items:center;
+
+  justify-content:center;
+
+}
+
+
+.model-ring-inner strong{
+
+  font-size:19px;
+
+  font-weight:800;
+
+}
+
+
+.model-ring-inner span{
+
+  font-size:9px;
+
+  color:var(--muted);
+
+}
+
+
+.model-info{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:5px;
+
+}
+
+
+.model-info strong{
+
+  font-size:14px;
+
+  color:var(--green);
+
+}
+
+
+.model-info span{
+
+  font-size:12px;
+
+  color:var(--muted);
+
+  line-height:1.5;
+
+}
+
+
+/* =========================================================
+   ANIMAL IMAGE
+   ========================================================= */
+
+.result-img{
+
+  width:100%;
+
+  height:250px;
+
+  border-radius:14px;
+
+  overflow:hidden;
+
+  background:
+    linear-gradient(
+      160deg,
+      #e6c9a0,
+      #c9976a
     );
 
+}
 
-  if (aiResult) {
 
-    resultBox.textContent =
-      aiResult;
+.result-img img{
 
-  } else {
+  width:100%;
 
-    resultBox.textContent =
-      'No AI analysis was found. Please return to Animal Consultation and run the analysis again.';
+  height:100%;
 
+  object-fit:cover;
+
+  display:block;
+
+}
+
+
+#imgFallback{
+
+  width:100%;
+
+  height:100%;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  color:#fff;
+
+  font-size:16px;
+
+}
+
+
+/* =========================================================
+   GRID
+   ========================================================= */
+
+.grid-2{
+
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:20px;
+
+  margin-bottom:20px;
+
+}
+
+
+.info-panel{
+
+  border-radius:var(--radius);
+
+  padding:22px;
+
+}
+
+
+.info-panel.green{
+  background:#eafbf3;
+}
+
+
+.info-panel.orange{
+  background:#fff5e9;
+}
+
+
+.info-panel.blue{
+  background:#eaf1ff;
+}
+
+
+.info-panel.purple{
+  background:#f1eefe;
+}
+
+
+.info-panel.pink{
+  background:#fdeef2;
+}
+
+
+.info-panel.teal{
+  background:#e8f8f7;
+}
+
+
+/* =========================================================
+   TITLES
+   ========================================================= */
+
+.info-title{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
+
+  font-size:15px;
+
+  font-weight:700;
+
+  margin-bottom:14px;
+
+}
+
+
+.info-title .badge{
+
+  font-size:11px;
+
+  font-weight:500;
+
+  color:var(--muted);
+
+}
+
+
+/* =========================================================
+   LISTS
+   ========================================================= */
+
+.info-list{
+
+  list-style:none;
+
+}
+
+
+.info-list li{
+
+  display:flex;
+
+  gap:8px;
+
+  font-size:13px;
+
+  color:var(--ink);
+
+  margin-bottom:10px;
+
+  align-items:flex-start;
+
+  line-height:1.5;
+
+}
+
+
+.info-list li:last-child{
+  margin-bottom:0;
+}
+
+
+.info-list .c{
+
+  font-weight:800;
+
+  flex-shrink:0;
+
+}
+
+
+.info-list.check .c{
+  color:var(--green);
+}
+
+
+.info-list.bullet .c{
+  color:var(--blue);
+}
+
+
+.info-list.warning .c{
+  color:var(--orange);
+}
+
+
+/* =========================================================
+   DYNAMIC TEXT
+   ========================================================= */
+
+.dynamic-text{
+
+  font-size:13px;
+
+  line-height:1.6;
+
+  color:var(--ink);
+
+}
+
+
+.dynamic-text p{
+
+  margin-bottom:9px;
+
+}
+
+
+.dynamic-text p:last-child{
+  margin-bottom:0;
+}
+
+
+/* =========================================================
+   VET RECOMMENDATION
+   ========================================================= */
+
+.doctor-row{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:flex-end;
+
+  gap:14px;
+
+}
+
+
+.doctor-row p{
+
+  font-size:13px;
+
+  color:var(--ink);
+
+  max-width:330px;
+
+  line-height:1.6;
+
+}
+
+
+.doctor-emoji{
+
+  font-size:62px;
+
+  flex-shrink:0;
+
+}
+
+
+/* =========================================================
+   EMERGENCY
+   ========================================================= */
+
+.emergency-top{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  margin-bottom:10px;
+
+}
+
+
+.emergency-level-chip{
+
+  background:#e6f9ef;
+
+  color:var(--green);
+
+  font-size:11.5px;
+
+  font-weight:700;
+
+  padding:4px 12px;
+
+  border-radius:20px;
+
+}
+
+
+.info-panel.pink p{
+
+  font-size:13px;
+
+  color:var(--ink);
+
+  margin-bottom:16px;
+
+  line-height:1.5;
+
+}
+
+
+.gauge{
+
+  height:8px;
+
+  border-radius:6px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #3cb897,
+      #f5d76e,
+      #f5a623,
+      #e15b5b
+    );
+
+  position:relative;
+
+}
+
+
+.gauge-dot{
+
+  position:absolute;
+
+  top:50%;
+
+  transform:translate(-50%,-50%);
+
+  width:14px;
+
+  height:14px;
+
+  border-radius:50%;
+
+  background:#fff;
+
+  border:3px solid var(--green);
+
+  left:8%;
+
+}
+
+
+.gauge-labels{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  font-size:11px;
+
+  color:var(--muted);
+
+  margin-top:8px;
+
+}
+
+
+/* =========================================================
+   3 AI MODEL CARD
+   ========================================================= */
+
+.ai-model-card{
+
+  background:#fff;
+
+  border:1px solid var(--border);
+
+  border-radius:var(--radius);
+
+  padding:22px;
+
+  margin-bottom:20px;
+
+  box-shadow:var(--shadow-sm);
+
+}
+
+
+.ai-model-header{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  gap:15px;
+
+  margin-bottom:16px;
+
+}
+
+
+.ai-model-title{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
+
+  font-size:15px;
+
+  font-weight:700;
+
+}
+
+
+.ai-model-status{
+
+  background:#e6f9ef;
+
+  color:var(--green);
+
+  border-radius:20px;
+
+  padding:5px 12px;
+
+  font-size:11px;
+
+  font-weight:700;
+
+}
+
+
+.model-grid{
+
+  display:grid;
+
+  grid-template-columns:repeat(3,1fr);
+
+  gap:12px;
+
+}
+
+
+.model-box{
+
+  border:1px solid var(--border);
+
+  border-radius:12px;
+
+  padding:14px;
+
+  background:var(--bg-soft);
+
+}
+
+
+.model-box .model-icon{
+
+  font-size:20px;
+
+  margin-bottom:6px;
+
+}
+
+
+.model-box strong{
+
+  display:block;
+
+  font-size:13px;
+
+  margin-bottom:4px;
+
+}
+
+
+.model-box span{
+
+  font-size:11.5px;
+
+  color:var(--green);
+
+  font-weight:600;
+
+}
+
+
+/* =========================================================
+   CONSENSUS REPORT
+   ========================================================= */
+
+.consensus-card{
+
+  background:#f7f6ff;
+
+  border:1px solid #e1dcff;
+
+  border-radius:var(--radius);
+
+  padding:22px;
+
+  margin-bottom:20px;
+
+}
+
+
+.consensus-title{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
+
+  font-size:15px;
+
+  font-weight:700;
+
+  color:var(--purple-dark);
+
+  margin-bottom:12px;
+
+}
+
+
+.consensus-text{
+
+  background:#fff;
+
+  border-radius:12px;
+
+  padding:18px;
+
+  font-size:13px;
+
+  line-height:1.7;
+
+  color:var(--ink);
+
+  max-height:500px;
+
+  overflow:auto;
+
+}
+
+
+/* =========================================================
+   DISCLAIMER
+   ========================================================= */
+
+.disclaimer-panel{
+
+  background:#fdeaea;
+
+  border:1px solid #f6d0d0;
+
+  border-radius:var(--radius);
+
+  padding:18px 22px;
+
+  display:flex;
+
+  gap:14px;
+
+  margin-bottom:20px;
+
+}
+
+
+.disclaimer-panel .di{
+
+  color:var(--red);
+
+  font-size:20px;
+
+  flex-shrink:0;
+
+}
+
+
+.disclaimer-panel b{
+
+  color:var(--red);
+
+  font-size:14px;
+
+  display:block;
+
+  margin-bottom:4px;
+
+}
+
+
+.disclaimer-panel p{
+
+  color:#a34141;
+
+  font-size:12.5px;
+
+  line-height:1.5;
+
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+   ========================================================= */
+
+.action-row{
+
+  display:flex;
+
+  justify-content:center;
+
+  gap:16px;
+
+  flex-wrap:wrap;
+
+  margin-bottom:14px;
+
+}
+
+
+.btn-download{
+
+  border:1px solid var(--purple);
+
+  color:var(--purple-dark);
+
+  background:#fff;
+
+  border-radius:10px;
+
+  padding:13px 26px;
+
+  font-size:13.5px;
+
+  font-weight:700;
+
+  cursor:pointer;
+
+  display:flex;
+
+  align-items:center;
+
+  gap:8px;
+
+}
+
+
+.btn-download:hover{
+  background:#f7f6ff;
+}
+
+
+.btn-save{
+
+  border:none;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--purple),
+      #9b8ff5
+    );
+
+  color:#fff;
+
+  border-radius:10px;
+
+  padding:13px 26px;
+
+  font-size:13.5px;
+
+  font-weight:700;
+
+  cursor:pointer;
+
+  display:flex;
+
+  align-items:center;
+
+  gap:8px;
+
+}
+
+
+.btn-save:hover{
+  opacity:.92;
+}
+
+
+.secure-note{
+
+  text-align:center;
+
+  font-size:12px;
+
+  color:var(--muted);
+
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width:1000px){
+
+  .result-hero{
+    grid-template-columns:1fr;
   }
 
-
-  // ==========================================
-  // LOAD ANIMAL IMAGE
-  // ==========================================
-
-  try {
-
-    const storedImg =
-      sessionStorage.getItem(
-        'mediscan_animal_uploaded_image'
-      );
-
-
-    if (storedImg) {
-
-      const img =
-        document.getElementById(
-          'resultImg'
-        );
-
-
-      img.src =
-        storedImg;
-
-
-      img.style.display =
-        'block';
-
-
-      document.getElementById(
-        'imgFallback'
-      ).style.display =
-        'none';
-
-    }
-
-  } catch (e) {
-
-    console.error(
-      'Could not load animal image:',
-      e
-    );
-
+  .grid-2{
+    grid-template-columns:1fr;
   }
 
+  .model-grid{
+    grid-template-columns:1fr;
+  }
 
-  // ==========================================
-  // DOWNLOAD BUTTON
-  // ==========================================
-
-  document
-    .getElementById('downloadBtn')
-    .addEventListener(
-      'click',
-      () => {
-
-        alert(
-          'PDF download will be connected later.'
-        );
-
-      }
-    );
+}
 
 
-  // ==========================================
-  // SAVE CONSULTATION
-  // ==========================================
+@media (max-width:900px){
 
-  document
-    .getElementById('saveBtn')
-    .addEventListener(
-      'click',
-      () => {
+  .app{
+    grid-template-columns:1fr;
+  }
 
-        alert(
-          'Consultation saved to your history!'
-        );
+  .sidebar{
+    display:none;
+  }
 
-        window.location.href =
-          'consultation-history.html';
+  .topbar{
+    padding:14px 18px;
+  }
 
-      }
-    );
+  .topbar-right{
+    gap:10px;
+  }
 
-</script>
+  .user-chip > div:not(.avatar-circle),
+  .user-chip .caret{
+    display:none;
+  }
+
+  .content{
+    padding:20px 16px 30px;
+  }
+
+}
+
+
+/* =========================================================
+   AI REPORT FORMATTING
+   ========================================================= */
+
+.ai-report h2{
+
+  font-size:20px;
+
+  color:var(--blue);
+
+  margin-bottom:12px;
+
+}
+
+
+.ai-report h3{
+
+  font-size:15px;
+
+  color:var(--ink);
+
+  margin:18px 0 8px;
+
+  padding-bottom:6px;
+
+  border-bottom:1px solid var(--border);
+
+}
+
+
+.ai-report p{
+
+  margin-bottom:7px;
+
+}
+
+
+.ai-report ul{
+
+  padding-left:20px;
+
+  margin-bottom:8px;
+
+}
+
+
+.ai-report li{
+
+  margin-bottom:5px;
+
+}
+
+
 </style>
+
 <link rel="stylesheet" href="shared-dark.css">
+
 </head>
+
+
 <body>
 
+
 <div class="app">
-  <aside class="sidebar">
-    <a href="dashboard.html" class="brand">
-      <span class="mark">🩺</span>
-      <span class="name"><span class="blue">Medi</span><span class="green">Scan AI</span><span class="sub" data-i18n="brand_sub">AI Healthcare Assistant</span></span>
+
+
+<!-- =====================================================
+     SIDEBAR
+     ===================================================== -->
+
+<aside class="sidebar">
+
+
+  <a href="dashboard.html" class="brand">
+
+    <span class="mark">🩺</span>
+
+    <span class="name">
+
+      <span class="blue">Medi</span>
+      <span class="green">Scan AI</span>
+
+      <span class="sub">
+        AI Healthcare Assistant
+      </span>
+
+    </span>
+
+  </a>
+
+
+  <div class="nav-main">
+
+
+    <a
+      href="dashboard.html"
+      class="nav-item"
+    >
+      <span class="ic">🏠</span>
+      Dashboard
     </a>
 
-    <div class="nav-main">
-      <a href="dashboard.html" class="nav-item"><span class="ic">🏠</span> <span data-i18n="nav_dashboard">Dashboard</span></a>
-      <a href="human-consultation.html" class="nav-item"><span class="ic">🧑</span> <span data-i18n="nav_human_health">Human Health</span></a>
-      <a href="animal-consultation.html" class="nav-item active"><span class="ic">🐾</span> <span data-i18n="nav_animal_health">Animal Health</span></a>
-      <a href="consultation-history.html" class="nav-item"><span class="ic">📋</span> <span data-i18n="nav_consultation_history">Consultation History</span></a>
-      <a href="profile.html" class="nav-item"><span class="ic">👤</span> <span data-i18n="nav_profile">Profile</span></a>
-      <a href="settings.html" class="nav-item"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Settings</span></a>
-      <div class="nav-divider"></div>
-      <a href="index.html" class="nav-item"><span class="ic">↩️</span> <span data-i18n="nav_logout">Logout</span></a>
-    </div>
 
-    <div class="help-box">
-      <b data-i18n="help_title">Need Help?</b>
-      <p data-i18n="help_desc">Talk to our AI Assistant or contact a professional.</p>
-      <button class="chat-btn">💬 <span data-i18n="help_chat_btn">Chat with AI Assistant</span></button>
-      <div class="bot-emoji">🤖</div>
-    </div>
-  </aside>
-
-  <div class="main">
-    <div class="topbar">
-      <div class="breadcrumb">
-        <a href="dashboard.html">Dashboard</a><span class="sep">›</span>
-        <a href="animal-consultation.html">Animal Health</a><span class="sep">›</span>
-        <b>AI Analysis Result</b>
-      </div>
-      <div class="topbar-right">
-        <button class="icon-btn" data-dark-toggle-btn style="width:38px;height:38px;border-radius:50%;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;border:none;">🌙</button>
-        <div class="lang-chip" style="display:flex;align-items:center;gap:8px;background:var(--bg-soft);border-radius:20px;padding:8px 14px;font-size:13.5px;">🌐 <span data-lang-label>English</span></div>
-        <div class="bell">🔔<span class="dot">2</span></div>
-        <div class="user-chip">
-          <div class="avatar-circle">🧑</div>
-          <div><b>Hello, User</b><span>Premium Member</span></div>
-          <span class="caret">▾</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="content">
-      <div class="page-head">
-        <div>
-          <h1 data-i18n="analysis_title">AI Analysis Result</h1>
-          <p id="resultTimestamp">Completed on May 20, 2025, 11:45 AM</p>
-        </div>
-        <div class="status-chip" data-i18n="analysis_completed">Analysis Completed</div>
-      </div>
-
-     <!-- AI RESULT -->
-<div class="card plain">
-
-  <div class="section-title blue">
-    <span class="si">🤖</span>
-    AI Animal Health Analysis
-  </div>
-
-  <div
-    id="animalAIResult"
-    style="
-      white-space:pre-wrap;
-      font-size:14px;
-      line-height:1.7;
-      color:var(--ink);
-      background:var(--bg-soft);
-      border-radius:12px;
-      padding:18px;
-    "
-  >
-    Loading AI analysis...
-  </div>
-
-</div>
-
-
-<!-- ANIMAL IMAGE -->
-<div class="card findings">
-
-  <div class="section-title blue">
-    <span class="si">🔍</span>
-    Uploaded Animal Image
-  </div>
-
-  <div class="img-box" style="height:300px;">
-
-    <img
-      id="resultImg"
-      src=""
-      style="display:none;"
+    <a
+      href="human-consultation.html"
+      class="nav-item"
     >
+      <span class="ic">🧑</span>
+      Human Health
+    </a>
 
-    <div
-      id="imgFallback"
+
+    <a
+      href="animal-consultation.html"
+      class="nav-item active"
+    >
+      <span class="ic">🐾</span>
+      Animal Health
+    </a>
+
+
+    <a
+      href="consultation-history.html"
+      class="nav-item"
+    >
+      <span class="ic">📋</span>
+      Consultation History
+    </a>
+
+
+    <a
+      href="profile.html"
+      class="nav-item"
+    >
+      <span class="ic">👤</span>
+      Profile
+    </a>
+
+
+    <a
+      href="settings.html"
+      class="nav-item"
+    >
+      <span class="ic">⚙️</span>
+      Settings
+    </a>
+
+
+    <div class="nav-divider"></div>
+
+
+    <a
+      href="index.html"
+      class="nav-item"
+    >
+      <span class="ic">↩️</span>
+      Logout
+    </a>
+
+
+  </div>
+
+
+  <div class="help-box">
+
+    <b>🤖 Need Help?</b>
+
+    <p>
+      Talk to our AI Assistant or contact a professional.
+    </p>
+
+    <button class="chat-btn">
+      💬 Chat with AI Assistant
+    </button>
+
+    <div class="bot-emoji">
+      🤖
+    </div>
+
+  </div>
+
+
+</aside>
+
+
+<!-- =====================================================
+     MAIN
+     ===================================================== -->
+
+<div class="main">
+
+
+<!-- =====================================================
+     TOP BAR
+     ===================================================== -->
+
+<div class="topbar">
+
+
+  <div class="breadcrumb">
+
+    <a href="dashboard.html">
+      Dashboard
+    </a>
+
+    <span class="sep">›</span>
+
+    <a href="animal-consultation.html">
+      Animal Health
+    </a>
+
+    <span class="sep">›</span>
+
+    <b>
+      AI Analysis Result
+    </b>
+
+  </div>
+
+
+  <div class="topbar-right">
+
+
+    <button
+      class="icon-btn"
+      data-dark-toggle-btn
       style="
-        width:100%;
-        height:100%;
+        width:38px;
+        height:38px;
+        border-radius:50%;
+        background:var(--bg-soft);
         display:flex;
         align-items:center;
         justify-content:center;
-        background:linear-gradient(160deg,#e6c9a0,#c9976a);
-        color:white;
         font-size:16px;
+        cursor:pointer;
+        border:none;
       "
     >
-      No image available
+      🌙
+    </button>
+
+
+    <div
+      class="lang-chip"
+      style="
+        display:flex;
+        align-items:center;
+        gap:8px;
+        background:var(--bg-soft);
+        border-radius:20px;
+        padding:8px 14px;
+        font-size:13.5px;
+      "
+    >
+      🌐
+      <span data-lang-label>
+        English
+      </span>
     </div>
 
-  </div>
 
-</div>
+    <div class="bell">
+
+      🔔
+
+      <span class="dot">
+        2
+      </span>
+
+    </div>
 
 
-<!-- IMPORTANT NOTICE -->
-<div class="card vet">
+    <div class="user-chip">
 
-  <div class="section-title orange">
-    <span class="si">⚠️</span>
-    Important Veterinary Notice
-  </div>
-
-  <p class="vet-desc">
-    This AI analysis is for informational purposes only.
-    It is not a definitive veterinary diagnosis and should
-    not replace examination or treatment by a qualified
-    veterinarian.
-  </p>
-
-</div>
-
-<script src="shared.js"></script>
-
-      <div class="action-row">
-        <button class="btn-download" id="downloadBtn">⬇️ Download PDF Report</button>
-        <button class="btn-save" id="saveBtn">💾 Save Consultation</button>
+      <div class="avatar-circle">
+        🧑
       </div>
-      <div class="secure-note">🛡️ Your data is secure and encrypted</div>
+
+      <div>
+
+        <b>
+          Hello, User
+        </b>
+
+        <span>
+          Premium Member
+        </span>
+
+      </div>
+
+      <span class="caret">
+        ▾
+      </span>
+
     </div>
+
+
   </div>
+
 </div>
+
+
+<!-- =====================================================
+     CONTENT
+     ===================================================== -->
+
+<div class="content">
+
+
+<!-- =====================================================
+     PAGE HEADER
+     ===================================================== -->
+
+<div class="page-head">
+
+
+  <div>
+
+    <h1>
+      🐾 AI Animal Analysis Results
+    </h1>
+
+    <p>
+      Your animal health information has been analyzed
+    </p>
+
+  </div>
+
+
+  <div class="status-card">
+
+    <div class="chip">
+
+      ✅
+
+      <span>
+        Analysis Completed
+      </span>
+
+    </div>
+
+    <div
+      class="ts"
+      id="resultTimestamp"
+    >
+      Completed on May 20, 2025, 11:45 AM
+    </div>
+
+  </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     HERO
+     ===================================================== -->
+
+<div class="panel">
+
+
+  <div class="result-hero">
+
+
+    <div>
+
+
+      <div class="cond-label">
+        Preliminary Animal Health Assessment
+      </div>
+
+
+      <div
+        class="cond-name"
+        id="conditionName"
+      >
+        Analysis generated by MediScan AI
+      </div>
+
+
+      <div
+        class="cond-sub"
+        id="conditionDescription"
+      >
+        The consolidated assessment is based on independent
+        analysis from multiple AI models.
+      </div>
+
+
+      <div class="model-label">
+        AI Model Agreement
+      </div>
+
+
+      <div class="model-score">
+
+
+        <div class="model-ring">
+
+          <div class="model-ring-inner">
+
+            <strong>
+              3/3
+            </strong>
+
+            <span>
+              MODELS
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="model-info">
+
+          <strong>
+            ✓ Three AI models analyzed
+          </strong>
+
+          <span>
+            Gemini, Qwen and Nemotron independently
+            analyzed the animal case.
+          </span>
+
+          <span>
+            MediScan consolidated the available findings
+            into one preliminary assessment.
+          </span>
+
+        </div>
+
+
+      </div>
+
+
+    </div>
+
+
+    <!-- ANIMAL IMAGE -->
+
+    <div class="result-img">
+
+
+      <img
+        id="resultImg"
+        src=""
+        alt="Uploaded animal"
+        style="display:none;"
+      >
+
+
+      <div id="imgFallback">
+
+        🐾
+        <span style="margin-left:8px;">
+          No image available
+        </span>
+
+      </div>
+
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     DETECTED FEATURES + POSSIBLE CAUSES
+     ===================================================== -->
+
+<div class="grid-2">
+
+
+  <div class="info-panel green">
+
+
+    <div class="info-title">
+
+      🌿
+
+      Detected Image Features
+
+    </div>
+
+
+    <div
+      id="featuresList"
+      class="dynamic-text"
+    >
+
+      <p>
+        Analysis findings will appear here.
+      </p>
+
+    </div>
+
+
+  </div>
+
+
+  <div class="info-panel orange">
+
+
+    <div class="info-title">
+
+      📍
+
+      Possible Causes
+
+    </div>
+
+
+    <div
+      id="causesList"
+      class="dynamic-text"
+    >
+
+      <p>
+        Possible causes identified by the AI models
+        will appear here.
+      </p>
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     FIRST AID + VETERINARY CARE
+     ===================================================== -->
+
+<div class="grid-2">
+
+
+  <div class="info-panel blue">
+
+
+    <div class="info-title">
+
+      🩹
+
+      First Aid / Home Care
+
+    </div>
+
+
+    <div
+      id="firstAidList"
+      class="dynamic-text"
+    >
+
+      <p>
+        Follow the preliminary care recommendations
+        provided in the AI assessment.
+      </p>
+
+    </div>
+
+
+  </div>
+
+
+  <div class="info-panel purple">
+
+
+    <div class="info-title">
+
+      🐾
+
+      Veterinary Care Recommendations
+
+      <span class="badge">
+        General Information Only
+      </span>
+
+    </div>
+
+
+    <div
+      id="vetCareList"
+      class="dynamic-text"
+    >
+
+      <p>
+        Veterinary recommendations from the consolidated
+        AI assessment will appear here.
+      </p>
+
+    </div>
+
+
+    <div class="med-note">
+
+      ⚠️
+
+      Any treatment or medication should be confirmed
+      with a qualified veterinarian.
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     VETERINARIAN + EMERGENCY
+     ===================================================== -->
+
+<div class="grid-2">
+
+
+  <div class="info-panel blue">
+
+
+    <div class="info-title">
+
+      👨‍⚕️
+
+      Veterinarian Recommendation
+
+    </div>
+
+
+    <div class="doctor-row">
+
+
+      <p id="vetRecommendation">
+
+        Consult a qualified veterinarian if the animal's
+        condition persists, worsens, or shows concerning
+        symptoms.
+
+      </p>
+
+
+      <div class="doctor-emoji">
+
+        🧑‍⚕️
+
+      </div>
+
+
+    </div>
+
+
+  </div>
+
+
+  <div class="info-panel pink">
+
+
+    <div class="emergency-top">
+
+
+      <div
+        class="info-title"
+        style="margin-bottom:0;"
+      >
+
+        🚨
+
+        Emergency Level
+
+      </div>
+
+
+      <span
+        class="emergency-level-chip"
+        id="emergencyLevel"
+      >
+        Low
+      </span>
+
+
+    </div>
+
+
+    <p id="emergencyDescription">
+
+      No immediate emergency was identified from
+      the available preliminary assessment.
+
+    </p>
+
+
+    <div class="gauge">
+
+      <div class="gauge-dot"></div>
+
+    </div>
+
+
+    <div class="gauge-labels">
+
+      <span>Low</span>
+
+      <span>Moderate</span>
+
+      <span>High</span>
+
+      <span>Critical</span>
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     THREE AI MODELS
+     ===================================================== -->
+
+<div class="ai-model-card">
+
+
+  <div class="ai-model-header">
+
+
+    <div class="ai-model-title">
+
+      🤖
+
+      MediScan Multi-Model Analysis
+
+    </div>
+
+
+    <div class="ai-model-status">
+
+      3 AI MODELS ACTIVE
+
+    </div>
+
+
+  </div>
+
+
+  <div class="model-grid">
+
+
+    <div class="model-box">
+
+      <div class="model-icon">
+        ✨
+      </div>
+
+      <strong>
+        Gemini
+      </strong>
+
+      <span>
+        ✓ Analysis included
+      </span>
+
+    </div>
+
+
+    <div class="model-box">
+
+      <div class="model-icon">
+        🧠
+      </div>
+
+      <strong>
+        Qwen
+      </strong>
+
+      <span>
+        ✓ Analysis included
+      </span>
+
+    </div>
+
+
+    <div class="model-box">
+
+      <div class="model-icon">
+        ⚡
+      </div>
+
+      <strong>
+        Nemotron
+      </strong>
+
+      <span>
+        ✓ Analysis included
+      </span>
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     CONSOLIDATED AI REPORT
+     ===================================================== -->
+
+<div class="consensus-card">
+
+
+  <div class="consensus-title">
+
+    🧩
+
+    MediScan Consolidated Preliminary Assessment
+
+  </div>
+
+
+  <div
+    id="consensusReport"
+    class="consensus-text ai-report"
+  >
+
+    Loading consolidated AI assessment...
+
+  </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     DISCLAIMER
+     ===================================================== -->
+
+<div class="disclaimer-panel">
+
+
+  <div class="di">
+    ⚠️
+  </div>
+
+
+  <div>
+
+    <b>
+      Veterinary Disclaimer
+    </b>
+
+
+    <p>
+
+      This AI-generated report is for informational
+      purposes only and is not a definitive veterinary
+      diagnosis. AI model agreement does not constitute
+      medical or veterinary validation. Please consult
+      a qualified veterinarian for proper examination,
+      diagnosis and treatment.
+
+    </p>
+
+  </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     ACTION BUTTONS
+     ===================================================== -->
+
+<div class="action-row">
+
+
+  <button
+    class="btn-download"
+    id="downloadBtn"
+  >
+
+    ⬇️
+
+    Download PDF Report
+
+  </button>
+
+
+  <button
+    class="btn-save"
+    id="saveBtn"
+  >
+
+    💾
+
+    Save Consultation
+
+  </button>
+
+
+</div>
+
+
+<div class="secure-note">
+
+  🛡️ Your data is secure and encrypted
+
+</div>
+
+
+</div>
+<!-- END CONTENT -->
+
+
+</div>
+<!-- END MAIN -->
+
+
+</div>
+<!-- END APP -->
+
 
 <script>
 
-  // ==========================================
-  // DATE AND TIME
-  // ==========================================
 
-  const d = new Date();
+/* =========================================================
+   DATE / TIME
+   ========================================================= */
 
-  const dateStr = d.toLocaleDateString(
+const d = new Date();
+
+
+const dateStr =
+  d.toLocaleDateString(
     'en-US',
     {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      year:'numeric',
+      month:'long',
+      day:'numeric'
     }
   );
 
-  const timeStr = d.toLocaleTimeString(
+
+const timeStr =
+  d.toLocaleTimeString(
     'en-US',
     {
-      hour: 'numeric',
-      minute: '2-digit'
+      hour:'numeric',
+      minute:'2-digit'
     }
   );
 
-  document.getElementById(
-    'resultTimestamp'
-  ).textContent =
+
+document
+  .getElementById('resultTimestamp')
+  .textContent =
     'Completed on ' +
     dateStr +
     ', ' +
     timeStr;
 
 
-  // ==========================================
-  // LOAD REAL ANIMAL GEMINI RESULT
-  // ==========================================
+/* =========================================================
+   LOAD ANIMAL IMAGE
+   ========================================================= */
 
-  const aiResult =
+try{
+
+  const storedImg =
     sessionStorage.getItem(
-      'mediscan_animal_ai_result'
+      'mediscan_animal_uploaded_image'
     );
 
 
-  const resultBox =
-    document.getElementById(
-      'animalAIResult'
-    );
+  if(storedImg){
 
-
-  if (aiResult) {
-
-    resultBox.textContent =
-      aiResult;
-
-  } else {
-
-    resultBox.textContent =
-      'No AI analysis was found. Please return to Animal Consultation and run the analysis again.';
-
-  }
-
-
-  // ==========================================
-  // LOAD ANIMAL IMAGE
-  // ==========================================
-
-  try {
-
-    const storedImg =
-      sessionStorage.getItem(
-        'mediscan_animal_uploaded_image'
+    const img =
+      document.getElementById(
+        'resultImg'
       );
 
 
-    if (storedImg) {
+    img.src = storedImg;
 
-      const img =
-        document.getElementById(
-          'resultImg'
-        );
+    img.style.display = 'block';
 
 
-      img.src =
-        storedImg;
+    document
+      .getElementById('imgFallback')
+      .style.display = 'none';
+
+  }
+
+}catch(e){
+
+  console.error(
+    'Could not load animal image:',
+    e
+  );
+
+}
 
 
-      img.style.display =
-        'block';
+/* =========================================================
+   GET ANIMAL AI RESULT
+   ========================================================= */
+
+const aiResult =
+  sessionStorage.getItem(
+    'mediscan_animal_ai_result'
+  );
 
 
-      document.getElementById(
-        'imgFallback'
-      ).style.display =
-        'none';
+const consensusBox =
+  document.getElementById(
+    'consensusReport'
+  );
+
+
+if(aiResult){
+
+  consensusBox.innerHTML =
+    formatAIResult(aiResult);
+
+}else{
+
+  consensusBox.textContent =
+    'No AI analysis was found. Please return to Animal Consultation and run the analysis again.';
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHTML(text){
+
+  const div =
+    document.createElement('div');
+
+  div.textContent = text;
+
+  return div.innerHTML;
+
+}
+
+
+/* =========================================================
+   FORMAT AI REPORT
+   ========================================================= */
+
+function formatAIResult(text){
+
+  let html =
+    escapeHTML(text);
+
+
+  /* Main headings */
+
+  html =
+    html.replace(
+      /^#\s+(.+)$/gm,
+      '<h2>$1</h2>'
+    );
+
+
+  /* Section headings */
+
+  html =
+    html.replace(
+      /^##\s+(.+)$/gm,
+      '<h3>$1</h3>'
+    );
+
+
+  html =
+    html.replace(
+      /^###\s+(.+)$/gm,
+      '<h3>$1</h3>'
+    );
+
+
+  /* Bold */
+
+  html =
+    html.replace(
+      /\*\*(.*?)\*\*/g,
+      '<strong>$1</strong>'
+    );
+
+
+  /* Bullets */
+
+  html =
+    html.replace(
+      /^[•\-]\s+(.+)$/gm,
+      '<li>$1</li>'
+    );
+
+
+  /* Wrap consecutive li elements */
+
+  html =
+    html.replace(
+      /(<li>.*<\/li>(?:\s*<li>.*<\/li>)*)/gs,
+      '<ul>$1</ul>'
+    );
+
+
+  /* Line breaks */
+
+  html =
+    html.replace(
+      /\n/g,
+      '<br>'
+    );
+
+
+  return html;
+
+}
+
+
+/* =========================================================
+   EXTRACT SECTION FROM AI REPORT
+   ========================================================= */
+
+function getSection(
+  text,
+  sectionNames
+){
+
+  if(!text){
+    return '';
+  }
+
+
+  const lines =
+    text.split(/\r?\n/);
+
+
+  let collecting = false;
+
+  let output = [];
+
+
+  for(
+    let i = 0;
+    i < lines.length;
+    i++
+  ){
+
+    let line =
+      lines[i].trim();
+
+
+    const clean =
+      line
+        .replace(/^#+\s*/, '')
+        .replace(
+          /^\d+\s*[\.\):\-]\s*/,
+          ''
+        )
+        .replace(/\*\*/g,'')
+        .trim()
+        .toLowerCase();
+
+
+    const matches =
+      sectionNames.some(
+        name =>
+          clean === name.toLowerCase() ||
+          clean.startsWith(
+            name.toLowerCase()
+          )
+      );
+
+
+    if(matches){
+
+      collecting = true;
+
+      continue;
 
     }
 
-  } catch (e) {
 
-    console.error(
-      'Could not load animal image:',
-      e
-    );
+    if(collecting){
+
+      const isNewHeading =
+        /^#{1,6}\s+/.test(line) ||
+        /^\d+\s*[\.\):\-]\s+/.test(line);
+
+
+      if(
+        isNewHeading &&
+        line.length > 0
+      ){
+
+        break;
+
+      }
+
+
+      if(line){
+
+        output.push(line);
+
+      }
+
+    }
 
   }
 
 
-  // ==========================================
-  // DOWNLOAD BUTTON
-  // ==========================================
+  return output.join('\n');
 
-  document
-    .getElementById('downloadBtn')
-    .addEventListener(
-      'click',
-      () => {
+}
 
-        alert(
-          'PDF download will be connected later.'
-        );
 
-      }
+/* =========================================================
+   CONVERT TEXT TO LIST
+   ========================================================= */
+
+function textToList(
+  text,
+  emptyText
+){
+
+  if(!text){
+
+    return `
+      <p>${emptyText}</p>
+    `;
+
+  }
+
+
+  const lines =
+    text
+      .split(/\r?\n/)
+      .map(
+        line =>
+          line
+            .replace(/^[•\-✓✔]\s*/, '')
+            .trim()
+      )
+      .filter(Boolean);
+
+
+  return `
+
+    <ul class="info-list check">
+
+      ${lines.map(
+        line => `
+
+          <li>
+
+            <span class="c">
+              ✔
+            </span>
+
+            <span>
+              ${escapeHTML(line)}
+            </span>
+
+          </li>
+
+        `
+      ).join('')}
+
+    </ul>
+
+  `;
+
+}
+
+
+/* =========================================================
+   POPULATE RESULT CARDS
+   ========================================================= */
+
+if(aiResult){
+
+  /* -----------------------------------------
+     POSSIBLE CONDITIONS
+     ----------------------------------------- */
+
+  const conditionSection =
+    getSection(
+      aiResult,
+      [
+        'possible conditions or causes',
+        'possible conditions',
+        'possible condition',
+        'conditions or causes'
+      ]
     );
 
 
-  // ==========================================
-  // SAVE CONSULTATION
-  // ==========================================
+  if(conditionSection){
+
+    const firstLine =
+      conditionSection
+        .split(/\r?\n/)
+        .filter(Boolean)[0];
+
+
+    if(firstLine){
+
+      document
+        .getElementById(
+          'conditionName'
+        )
+        .textContent =
+          firstLine
+            .replace(
+              /^[•\-]\s*/,
+              ''
+            );
+
+    }
+
+  }
+
+
+  /* -----------------------------------------
+     VISIBLE OBSERVATIONS
+     ----------------------------------------- */
+
+  const observations =
+    getSection(
+      aiResult,
+      [
+        'visible observations',
+        'observations',
+        'image observations'
+      ]
+    );
+
 
   document
-    .getElementById('saveBtn')
-    .addEventListener(
-      'click',
-      () => {
+    .getElementById(
+      'featuresList'
+    )
+    .innerHTML =
+      textToList(
+        observations,
+        'No specific image observations were extracted.'
+      );
 
-        alert(
-          'Consultation saved to your history!'
-        );
 
-        window.location.href =
-          'consultation-history.html';
+  /* -----------------------------------------
+     POSSIBLE CAUSES
+     ----------------------------------------- */
 
-      }
+  const causes =
+    getSection(
+      aiResult,
+      [
+        'possible conditions or causes',
+        'possible causes',
+        'causes'
+      ]
     );
+
+
+  document
+    .getElementById(
+      'causesList'
+    )
+    .innerHTML =
+      textToList(
+        causes,
+        'No specific causes were identified in the available report.'
+      );
+
+
+  /* -----------------------------------------
+     NEXT STEPS
+     ----------------------------------------- */
+
+  const nextSteps =
+    getSection(
+      aiResult,
+      [
+        'recommended next steps',
+        'next steps',
+        'recommendations'
+      ]
+    );
+
+
+  document
+    .getElementById(
+      'firstAidList'
+    )
+    .innerHTML =
+      textToList(
+        nextSteps,
+        'Follow the veterinarian recommendations provided in the assessment.'
+      );
+
+
+  /* -----------------------------------------
+     SUPPORTING REASONING
+     ----------------------------------------- */
+
+  const reasoning =
+    getSection(
+      aiResult,
+      [
+        'supporting reasoning',
+        'reasoning'
+      ]
+    );
+
+
+  document
+    .getElementById(
+      'vetCareList'
+    )
+    .innerHTML =
+      reasoning
+        ? `<p>${escapeHTML(reasoning)}</p>`
+        : `
+          <p>
+            Veterinary care recommendations are based
+            on the available preliminary assessment.
+          </p>
+        `;
+
+
+  /* -----------------------------------------
+     VETERINARY RECOMMENDATION
+     ----------------------------------------- */
+
+  const recommendation =
+    getSection(
+      aiResult,
+      [
+        'recommended next steps',
+        'next steps'
+      ]
+    );
+
+
+  if(recommendation){
+
+    document
+      .getElementById(
+        'vetRecommendation'
+      )
+      .textContent =
+        recommendation
+          .replace(
+            /^[•\-]\s*/gm,
+            ''
+          )
+          .substring(
+            0,
+            350
+          );
+
+  }
+
+
+  /* -----------------------------------------
+     URGENCY
+     ----------------------------------------- */
+
+  const urgency =
+    getSection(
+      aiResult,
+      [
+        'preliminary urgency',
+        'urgency'
+      ]
+    );
+
+
+  if(urgency){
+
+    const lower =
+      urgency.toLowerCase();
+
+
+    let level = 'Low';
+
+    let position = '8%';
+
+
+    if(
+      lower.includes('critical')
+    ){
+
+      level = 'Critical';
+      position = '96%';
+
+    }
+    else if(
+      lower.includes('high') ||
+      lower.includes('urgent')
+    ){
+
+      level = 'High';
+      position = '72%';
+
+    }
+    else if(
+      lower.includes('moderate')
+    ){
+
+      level = 'Moderate';
+      position = '42%';
+
+    }
+
+
+    document
+      .getElementById(
+        'emergencyLevel'
+      )
+      .textContent =
+        level;
+
+
+    document
+      .querySelector(
+        '.gauge-dot'
+      )
+      .style.left =
+        position;
+
+
+    document
+      .getElementById(
+        'emergencyDescription'
+      )
+      .textContent =
+        urgency
+          .replace(
+            /^[•\-]\s*/gm,
+            ''
+          );
+
+  }
+
+
+  /* -----------------------------------------
+     MODEL AGREEMENT
+     ----------------------------------------- */
+
+  const agreement =
+    getSection(
+      aiResult,
+      [
+        'model agreement and uncertainty',
+        'model agreement',
+        'agreement and uncertainty'
+      ]
+    );
+
+
+  if(agreement){
+
+    document
+      .querySelector(
+        '.model-info span:last-child'
+      )
+      .textContent =
+        agreement
+          .replace(
+            /^[•\-]\s*/gm,
+            ''
+          )
+          .substring(
+            0,
+            250
+          );
+
+  }
+
+}
+
+
+/* =========================================================
+   DOWNLOAD BUTTON
+   ========================================================= */
+
+document
+  .getElementById(
+    'downloadBtn'
+  )
+  .addEventListener(
+    'click',
+    () => {
+
+      alert(
+        'PDF download will be connected later.'
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   SAVE CONSULTATION
+   ========================================================= */
+
+document
+  .getElementById(
+    'saveBtn'
+  )
+  .addEventListener(
+    'click',
+    () => {
+
+      alert(
+        'Consultation saved successfully.'
+      );
+
+
+      window.location.href =
+        'consultation-history.html';
+
+    }
+  );
+
 
 </script>
 
+
 <script src="shared.js"></script>
+
+
 </body>
+
 </html>
