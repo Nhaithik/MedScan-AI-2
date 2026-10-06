@@ -64,7 +64,7 @@ gemini_client = genai.Client(
 
 GEMINI_MODEL = "gemini-3.6-flash"
 
-QWEN_MODEL = "qwen/qwen3.8-27b:free"
+QWEN_MODEL = "google/gemma-4-26b-a4b-it:free"
 
 NEMOTRON_MODEL = (
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
